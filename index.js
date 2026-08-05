@@ -38,7 +38,9 @@ if (MONGODB_URI) {
 // ----------------------------------------------------
 // DATABASE STRUCTURE & FALLBACK (local-db.json)
 // ----------------------------------------------------
-const JSON_DB_PATH = path.join(__dirname, 'local-db.json');
+const JSON_DB_PATH = process.env.VERCEL 
+    ? path.join('/tmp', 'local-db.json') 
+    : path.join(__dirname, 'local-db.json');
 
 // Initialize local JSON file if not exists
 if (!fs.existsSync(JSON_DB_PATH)) {
@@ -61,7 +63,11 @@ if (!fs.existsSync(JSON_DB_PATH)) {
             contact: 'Contact your administrator to purchase Premium access.\nEmail: admin@trade1percent.com'
         }
     };
-    fs.writeFileSync(JSON_DB_PATH, JSON.stringify(initialData, null, 2));
+    try {
+        fs.writeFileSync(JSON_DB_PATH, JSON.stringify(initialData, null, 2));
+    } catch (e) {
+        console.error('Error creating local JSON database backup', e.message);
+    }
 }
 
 // Helper to read JSON DB
@@ -505,7 +511,12 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Listen on server port
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Trade 1% Journal is listening at http://0.0.0.0:${PORT}`);
-});
+// Listen on server port only if not running on Vercel serverless environment
+if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 Trade 1% Journal is listening at http://0.0.0.0:${PORT}`);
+    });
+}
+
+// Export Express app for Vercel Serverless Function engine
+module.exports = app;

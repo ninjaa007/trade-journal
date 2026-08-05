@@ -1,0 +1,20 @@
+{
+  "name": "trade-1-percent-journal",
+  "version": "1.0.0",
+  "description": "Professional Trading Journal with Cloud Database Integration",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js",
+    "dev": "node api/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.5.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "private": true
+}

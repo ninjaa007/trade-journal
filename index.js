@@ -513,8 +513,8 @@ app.get('*', (req, res) => {
 
 // Listen on server port only if not running on Vercel serverless environment
 if (!process.env.VERCEL) {
-    app.listen(PORT, '5.30.8.34', () => {
-        console.log(`🚀 Trade 1% Journal is listening at http://5.30.8.34:${32}`);
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 Trade 1% Journal is listening at http://0.0.0.0:${PORT}`);
     });
 }
 

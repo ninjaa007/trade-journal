@@ -671,6 +671,14 @@ let CACHED_GURUKUL = [];
 let CACHED_PREMIUM = null;
 let CACHED_ALL_USER_DATAS = {};
 
+// DATABASE AUTO-ROUTING FOR ANDROID APK
+// Replace the URL below with your actual, live Vercel website link!
+const CLOUD_URL = 'https://tradeonepercent.vercel.app'; 
+
+const API_BASE = (window.location.protocol === 'file:' || window.location.hostname === '' || window.location.hostname === 'localhost')
+    ? CLOUD_URL
+    : '';
+
 const LOCKABLE = [
     { key:'compounding', label:'Compounding Engine', icon:'fa-rocket' },
     { key:'gurukul', label:'Gurukul (Knowledge)', icon:'fa-book-open' }
@@ -688,7 +696,7 @@ async function saveUsers(u) {
     CACHED_USERS = u;
     localStorage.setItem('t1p_users', JSON.stringify(u));
     try {
-        await fetch('/api/sync/users', {
+        await fetch(API_BASE + '/api/sync/users', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ users: u })
@@ -747,7 +755,7 @@ async function saveUD(un, d) {
     }
     localStorage.setItem('t1p_data_' + un, JSON.stringify(d));
     try {
-        await fetch('/api/sync/user-data', {
+        await fetch(API_BASE + '/api/sync/user-data', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: un, userData: d })
@@ -765,7 +773,7 @@ async function saveGurukul(d) {
     CACHED_GURUKUL = d;
     localStorage.setItem('t1p_gurukul', JSON.stringify(d));
     try {
-        await fetch('/api/sync/gurukul', {
+        await fetch(API_BASE + '/api/sync/gurukul', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ gurukul: d })
@@ -787,7 +795,7 @@ async function savePremiumMsgData(d) {
     CACHED_PREMIUM = d;
     localStorage.setItem('t1p_premium', JSON.stringify(d));
     try {
-        await fetch('/api/sync/premium', {
+        await fetch(API_BASE + '/api/sync/premium', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ premium: d })
@@ -811,7 +819,7 @@ async function handleLogin(e) {
     btn.disabled = true;
 
     try {
-        const response = await fetch('/api/auth/login', {
+        const response = await fetch(API_BASE + '/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: u, password: p })
@@ -2002,7 +2010,7 @@ async function restoreSession(){
     }
     
     try {
-        const response = await fetch('/api/auth/session', {
+        const response = await fetch(API_BASE + '/api/auth/session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: sess.username })

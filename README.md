@@ -107,3 +107,36 @@ Render is another highly popular free hosting provider for Node.js apps.
 2. **Offline-First Resilience:** In the event that your hosting server is temporarily down, the app automatically switches to **Offline-First Mode** inside the browser, saving changes to `localStorage` and alerting the user. When the connection is restored, it will load and sync seamlessly!
 3. **Admin Controls:** The system retains full administrative control. When logged in as `admin`, the backend exposes and caches all users' databases so that combined reports, user-by-user analytics, and global setups can be updated and generated in real-time.
 4. **Data Optimization:** The backend handles payloads up to **50MB**, allowing high-resolution screenshots and base64 setup charts to be logged inside the database without server crashes.
+
+---
+
+## 📱 Automatically Compile & Download Your Android APK
+
+We have set up an **Automated Android APK Compiler** directly inside your GitHub repository using **GitHub Actions**! This eliminates the need to download heavy mobile SDKs or compile anything on your own computer.
+
+### How it works:
+Every time you commit or push code changes to GitHub, a cloud compilation server will automatically:
+1. Bundle your frontend code (`public/index.html` and assets).
+2. Wrap it inside a native Android container (Apache Cordova).
+3. Configure it to be **compatible with older Android versions** (back to **Android 5.0 Lollipop / API 21**, which covers 99.5% of all active devices worldwide!).
+4. Build a downloadable Android `.apk` file for you.
+
+### How to configure your Vercel Link in the APK:
+Before downloading your APK, make sure the mobile app knows where to reach your database.
+1. Open your `public/index.html` file on your computer.
+2. Go to line **669**:
+   ```javascript
+   const CLOUD_URL = 'https://trade-journal.vercel.app';
+   ```
+3. Change `'https://trade-journal.vercel.app'` to your **actual live Vercel URL** (e.g., `https://your-custom-name.vercel.app`).
+4. Commit and push this change to GitHub.
+
+### How to download your ready APK from GitHub:
+1. Go to your **GitHub repository** in your web browser.
+2. Click on the **Actions** tab at the top.
+3. You will see a workflow running called **"Build Android APK"** (with a yellow spinning circle).
+4. Once it finishes (about 2 minutes), the circle turns **green**. Click on that workflow run.
+5. Scroll down to the **Artifacts** section at the bottom of the page.
+6. Click on the link named **`Trade1Percent-Android-App`**. This will download a `.zip` file containing your ready-to-use **`app-debug.apk`**!
+7. Transfer this `.apk` file to your phone (via email, WhatsApp, or Google Drive) and open it to install! You and your beloved can now log in and journal trades with real-time cloud database syncing!
+

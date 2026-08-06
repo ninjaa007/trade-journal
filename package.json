@@ -2,10 +2,10 @@
   "name": "trade-1-percent-journal",
   "version": "1.0.0",
   "description": "Professional Trading Journal with Cloud Database Integration",
-  "main": "api/index.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node api/index.js",
-    "dev": "node api/index.js"
+    "start": "node index.js",
+    "dev": "node index.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

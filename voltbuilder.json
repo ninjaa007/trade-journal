@@ -1,8 +1,0 @@
-{
-  "androidAlias": "trade1percent",
-  "androidAliasPassword": "trade123",
-  "androidKeystore": "release.keystore",
-  "androidKeystorePassword": "trade123",
-  "androidPackageType": "bundle",
-  "release": "release"
-}

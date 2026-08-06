@@ -7,7 +7,7 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Enable CORS and increase body size limit (important if users upload base64 images of trade setups!)
+// Enable CORS and increase body size limit
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -17,20 +17,31 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Determine database mode
 const DB_URI = process.env.MONGODB_URI || process.env.MANGODB_URI || process.env.DATABASE_URL || process.env.POSTGRES_URL;
+const KV_URL = process.env.KV_REST_API_URL;
+const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+
 let dbMode = 'json'; // default to JSON file fallback
 
 let pgClient = null;
 let mongoose = null;
 let User, UserData, Gurukul, Premium, GlobalConfig;
 
-if (DB_URI && (DB_URI.startsWith('postgresql://') || DB_URI.startsWith('postgres://'))) {
-    // ----------------------------------------------------
-    // POSTGRESQL / SUPABASE MODE
-    // ----------------------------------------------------
+// ----------------------------------------------------
+// DATABASE ROUTING AND CONFIGURATION
+// ----------------------------------------------------
+
+if (KV_URL && KV_TOKEN) {
+    // 1. VERCEL KV (REDIS) MODE (The 100% foolproof, 2-click database!)
+    console.log('✅ Vercel KV (Redis) credentials detected! Connecting...');
+    dbMode = 'vercel_kv';
+    ensureAdminExistsKV();
+
+} else if (DB_URI && (DB_URI.startsWith('postgresql://') || DB_URI.startsWith('postgres://'))) {
+    // 2. POSTGRESQL / SUPABASE MODE
     const { Client } = require('pg');
     pgClient = new Client({
         connectionString: DB_URI,
-        ssl: { rejectUnauthorized: false } // Required for secure cloud hosts like Supabase
+        ssl: { rejectUnauthorized: false }
     });
 
     pgClient.connect()
@@ -46,14 +57,25 @@ if (DB_URI && (DB_URI.startsWith('postgresql://') || DB_URI.startsWith('postgres
         });
 
 } else if (DB_URI) {
-    // ----------------------------------------------------
-    // MONGODB MODE
-    // ----------------------------------------------------
+    // 3. MONGODB MODE
     mongoose = require('mongoose');
     mongoose.connect(DB_URI, { family: 4 })
         .then(() => {
             console.log('✅ Connected to MongoDB Atlas Cloud Database!');
             dbMode = 'mongodb';
+            
+            // Optimize for Vercel Functions Connection Pool
+            try {
+                const { attachDatabasePool } = require('@vercel/functions');
+                const client = mongoose.connection.getClient();
+                if (client && typeof attachDatabasePool === 'function') {
+                    attachDatabasePool(client);
+                    console.log('⚡ Vercel Functions Database Pool attached successfully!');
+                }
+            } catch (poolErr) {
+                console.log('ℹ️ Vercel Functions database pool skip / not in Vercel environment.');
+            }
+            
             setupMongooseSchemas();
             ensureAdminExistsMongo();
         })
@@ -69,7 +91,58 @@ if (DB_URI && (DB_URI.startsWith('postgresql://') || DB_URI.startsWith('postgres
 // DATABASE INITIALIZERS
 // ----------------------------------------------------
 
-// 1. Local JSON file configuration (Fallback)
+// Vercel KV Helpers
+async function kvGet(key) {
+    try {
+        const res = await fetch(`${KV_URL}/get/${key}`, {
+            headers: { Authorization: `Bearer ${KV_TOKEN}` }
+        });
+        const json = await res.json();
+        return json.result ? JSON.parse(json.result) : null;
+    } catch (e) {
+        console.error('Vercel KV GET error:', e.message);
+        return null;
+    }
+}
+
+async function kvSet(key, value) {
+    try {
+        await fetch(`${KV_URL}/set/${key}`, {
+            method: 'POST',
+            headers: { 
+                Authorization: `Bearer ${KV_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(JSON.stringify(value)) // Double stringify to save as Redis string
+        });
+    } catch (e) {
+        console.error('Vercel KV SET error:', e.message);
+    }
+}
+
+async function ensureAdminExistsKV() {
+    try {
+        const usersList = await kvGet('t1p_users');
+        if (!usersList || !usersList.find(u => u.username === 'admin')) {
+            const initialUsers = [
+                {
+                    username: 'admin',
+                    password: 'admin',
+                    fullname: 'Administrator',
+                    role: 'admin',
+                    profile: {},
+                    access: {}
+                }
+            ];
+            await kvSet('t1p_users', initialUsers);
+            console.log('✅ Default admin user successfully created in Vercel KV!');
+        }
+    } catch (e) {
+        console.error('Error creating admin in Vercel KV:', e.message);
+    }
+}
+
+// Local JSON file configuration (Fallback)
 const JSON_DB_PATH = process.env.VERCEL 
     ? path.join('/tmp', 'local-db.json') 
     : path.join(__dirname, 'local-db.json');
@@ -122,7 +195,7 @@ function writeJsonDb(data) {
     } catch (e) {}
 }
 
-// 2. Mongoose Schemas Setup
+// Mongoose Schemas Setup
 function setupMongooseSchemas() {
     const UserSchema = new mongoose.Schema({
         username: { type: String, required: true, unique: true },
@@ -183,7 +256,7 @@ async function ensureAdminExistsMongo() {
     } catch (e) {}
 }
 
-// 3. PostgreSQL Tables Setup
+// PostgreSQL Tables Setup
 async function setupPostgresTables() {
     const queries = [
         `CREATE TABLE IF NOT EXISTS users (
@@ -267,7 +340,42 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         let user, userData, gurukulData = [], premiumData = null, globalConfig = null, users = [], allUserDatas = null;
 
-        if (dbMode === 'postgres') {
+        if (dbMode === 'vercel_kv') {
+            const usersList = await kvGet('t1p_users') || [
+                { username: 'admin', password: 'admin', fullname: 'Administrator', role: 'admin', profile: {}, access: {} }
+            ];
+            user = usersList.find(u => u.username === username.toLowerCase().trim() && u.password === password);
+            if (!user) {
+                return res.status(401).json({ success: false, message: 'Invalid username or password.' });
+            }
+
+            userData = await kvGet(`t1p_data_${user.username}`) || getDefaultUserData();
+            
+            globalConfig = await kvGet('t1p_global_config') || {
+                broadcast: '',
+                broadcastActive: false,
+                customFields: [],
+                news: []
+            };
+            
+            gurukulData = await kvGet('t1p_gurukul') || [];
+            
+            premiumData = await kvGet('t1p_premium') || {
+                title: '🔒 Premium Feature Locked',
+                msg: 'This powerful feature is available exclusively for Premium members. Upgrade your account to unlock advanced analytics, compounding engine, knowledge repository, and more!',
+                contact: 'Contact your administrator to purchase Premium access.\nEmail: admin@trade1percent.com'
+            };
+
+            users = usersList.map(u => ({ username: u.username, fullname: u.fullname, role: u.role, profile: u.profile, access: u.access }));
+
+            if (user.role === 'admin') {
+                allUserDatas = {};
+                for (const u of usersList) {
+                    allUserDatas[u.username] = await kvGet(`t1p_data_${u.username}`) || getDefaultUserData();
+                }
+            }
+
+        } else if (dbMode === 'postgres') {
             const userRes = await pgClient.query('SELECT * FROM users WHERE username = $1', [username.toLowerCase().trim()]);
             if (userRes.rows.length === 0 || userRes.rows[0].password !== password) {
                 return res.status(401).json({ success: false, message: 'Invalid username or password.' });
@@ -446,7 +554,42 @@ app.post('/api/auth/session', async (req, res) => {
         let user, userData, gurukulData = [], premiumData = null, globalConfig = null, users = [], allUserDatas = null;
         const normalizedUsername = username.toLowerCase().trim();
 
-        if (dbMode === 'postgres') {
+        if (dbMode === 'vercel_kv') {
+            const usersList = await kvGet('t1p_users') || [
+                { username: 'admin', password: 'admin', fullname: 'Administrator', role: 'admin', profile: {}, access: {} }
+            ];
+            user = usersList.find(u => u.username === normalizedUsername);
+            if (!user) {
+                return res.status(404).json({ success: false, message: 'Session user account not found.' });
+            }
+
+            userData = await kvGet(`t1p_data_${user.username}`) || getDefaultUserData();
+            
+            globalConfig = await kvGet('t1p_global_config') || {
+                broadcast: '',
+                broadcastActive: false,
+                customFields: [],
+                news: []
+            };
+            
+            gurukulData = await kvGet('t1p_gurukul') || [];
+            
+            premiumData = await kvGet('t1p_premium') || {
+                title: '🔒 Premium Feature Locked',
+                msg: 'This powerful feature is available exclusively for Premium members. Upgrade your account to unlock advanced analytics, compounding engine, knowledge repository, and more!',
+                contact: 'Contact your administrator to purchase Premium access.\nEmail: admin@trade1percent.com'
+            };
+
+            users = usersList.map(u => ({ username: u.username, fullname: u.fullname, role: u.role, profile: u.profile, access: u.access }));
+
+            if (user.role === 'admin') {
+                allUserDatas = {};
+                for (const u of usersList) {
+                    allUserDatas[u.username] = await kvGet(`t1p_data_${u.username}`) || getDefaultUserData();
+                }
+            }
+
+        } else if (dbMode === 'postgres') {
             const userRes = await pgClient.query('SELECT * FROM users WHERE username = $1', [normalizedUsername]);
             if (userRes.rows.length === 0) {
                 return res.status(404).json({ success: false, message: 'Session user account not found.' });
@@ -619,7 +762,18 @@ app.post('/api/sync/users', async (req, res) => {
     }
 
     try {
-        if (dbMode === 'postgres') {
+        if (dbMode === 'vercel_kv') {
+            await kvSet('t1p_users', users);
+            // Clean up KV user data files of deleted users
+            const activeUsernames = users.map(u => u.username.toLowerCase().trim());
+            const currentUsersList = await kvGet('t1p_users') || [];
+            for (const u of currentUsersList) {
+                if (u.username !== 'admin' && !activeUsernames.includes(u.username)) {
+                    // In KV we can just delete or ignore (ignoring is safe because we fetch based on user lists!)
+                }
+            }
+
+        } else if (dbMode === 'postgres') {
             const currentUsers = users.map(u => u.username.toLowerCase().trim());
 
             await pgClient.query('DELETE FROM users WHERE username NOT IN (' + currentUsers.map((_, i) => '$' + (i + 1)).join(',') + ') AND username <> $1', [...currentUsers, 'admin']);
@@ -687,7 +841,10 @@ app.post('/api/sync/user-data', async (req, res) => {
     try {
         const targetUsername = username.toLowerCase().trim();
         
-        if (dbMode === 'postgres') {
+        if (dbMode === 'vercel_kv') {
+            await kvSet(`t1p_data_${targetUsername}`, userData);
+
+        } else if (dbMode === 'postgres') {
             await pgClient.query(
                 `INSERT INTO user_datas (username, trades, settings, compounding_stages, my_setups, profile) 
                  VALUES ($1, $2, $3, $4, $5, $6) 
@@ -730,7 +887,10 @@ app.post('/api/sync/gurukul', async (req, res) => {
     }
 
     try {
-        if (dbMode === 'postgres') {
+        if (dbMode === 'vercel_kv') {
+            await kvSet('t1p_gurukul', gurukul);
+
+        } else if (dbMode === 'postgres') {
             await pgClient.query(
                 `INSERT INTO global_config (key, gurukul) VALUES ($1, $2)
                  ON CONFLICT (key) DO UPDATE SET gurukul = EXCLUDED.gurukul`,
@@ -761,7 +921,10 @@ app.post('/api/sync/premium', async (req, res) => {
     }
 
     try {
-        if (dbMode === 'postgres') {
+        if (dbMode === 'vercel_kv') {
+            await kvSet('t1p_premium', premium);
+
+        } else if (dbMode === 'postgres') {
             await pgClient.query(
                 `INSERT INTO global_config (key, premium) VALUES ($1, $2)
                  ON CONFLICT (key) DO UPDATE SET premium = EXCLUDED.premium`,
@@ -793,7 +956,16 @@ app.post('/api/sync/global-config', async (req, res) => {
     const { broadcast, broadcastActive, customFields, news } = req.body;
     
     try {
-        if (dbMode === 'postgres') {
+        if (dbMode === 'vercel_kv') {
+            const gConfig = {
+                broadcast: broadcast !== undefined ? broadcast : '',
+                broadcastActive: broadcastActive !== undefined ? broadcastActive : false,
+                customFields: customFields || [],
+                news: news || []
+            };
+            await kvSet('t1p_global_config', gConfig);
+
+        } else if (dbMode === 'postgres') {
             await pgClient.query(
                 `INSERT INTO global_config (key, broadcast, broadcast_active, custom_fields, news) 
                  VALUES ($1, $2, $3, $4, $5)

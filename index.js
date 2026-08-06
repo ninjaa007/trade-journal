@@ -21,7 +21,7 @@ let dbMode = 'json'; // default to JSON file fallback
 
 if (MONGODB_URI) {
     const mongoose = require('mongoose');
-    mongoose.connect(MONGODB_URI)
+    mongoose.connect(MONGODB_URI, { family: 4 })
         .then(() => {
             console.log('✅ Connected to MongoDB Atlas Cloud Database!');
             dbMode = 'mongodb';

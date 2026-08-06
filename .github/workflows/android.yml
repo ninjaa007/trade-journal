@@ -40,6 +40,11 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
 
+      - name: Install Android Build-Tools 32.0.0
+        run: |
+          # Install Android Build-Tools version 32.0.0 (required by Cordova Android 11)
+          echo "y" | sdkmanager "build-tools;32.0.0"
+
       - name: Setup Gradle 7.6 (Force Cordova Compatibility)
         uses: gradle/actions/setup-gradle@v4
         with:

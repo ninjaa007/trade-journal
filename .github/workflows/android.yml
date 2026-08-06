@@ -30,6 +30,9 @@ jobs:
           rm -rf www/*
           # Copy our updated frontend files (with the correct Vercel URL)
           cp -r ../public/* www/
+          # Copy build.json and keystore inside cordova-app for automatic signing
+          cp ../build.json .
+          cp ../release.keystore .
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
@@ -41,8 +44,8 @@ jobs:
         run: |
           cd cordova-app
           cordova platform add android@11.0.0
-          # Build a fully signed Release Android App Bundle (.aab)
-          cordova build android --release -- --packageType=bundle --keystore=../release.keystore --storePassword=trade123 --alias=trade1percent --password=trade123
+          # This will automatically pick up build.json, sign the app, and compile it as a .aab bundle!
+          cordova build android --release
 
       - name: Upload Signed Play Store Bundle (.aab)
         uses: actions/upload-artifact@v4

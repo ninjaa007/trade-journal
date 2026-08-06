@@ -289,6 +289,7 @@ app.post('/api/auth/login', async (req, res) => {
 
         res.json({
             success: true,
+            dbMode,
             user,
             userData,
             gurukulData,
@@ -397,6 +398,7 @@ app.post('/api/auth/session', async (req, res) => {
 
         res.json({
             success: true,
+            dbMode,
             user,
             userData,
             gurukulData,

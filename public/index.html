@@ -25,6 +25,34 @@
         body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
         
         /* NEW FEATURES CSS */
+        .db-warning-banner {
+            background: #EF4444;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 4px 15px rgba(239,68,68,0.3);
+            border-bottom: 2px solid #DC2626;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            text-align: center;
+            animation: pulse-red 2s infinite;
+        }
+        .db-warning-banner.hidden { display: none; }
+        
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
         .broadcast-banner {
             background: linear-gradient(135deg, var(--gold), var(--gold2));
             color: var(--bg);
@@ -375,6 +403,12 @@
 
 <!-- ========== MAIN ========== -->
 <main class="main" id="mainContent">
+    
+    <!-- Database Connection Warning Banner -->
+    <div id="dbWarningBanner" class="db-warning-banner hidden">
+        <i class="fas fa-exclamation-triangle" style="font-size: 16px;"></i>
+        <span><strong>⚠️ DATABASE CONNECTION WARNING:</strong> Your server failed to connect to MongoDB. You are running on a temporary local disk. <strong>All users and trade logs will be deleted when the server goes to sleep!</strong> Please configure your <code>MONGODB_URI</code> on Vercel and whitelist <code>0.0.0.0/0</code> in MongoDB.</span>
+    </div>
     
     <!-- Broadcast Announcement Banner -->
     <div id="broadcastBanner" class="broadcast-banner hidden">
@@ -843,6 +877,7 @@ let CACHED_GURUKUL = [];
 let CACHED_PREMIUM = null;
 let CACHED_ALL_USER_DATAS = {};
 let CACHED_GLOBAL_CONFIG = { broadcast: '', customFields: [], news: [] };
+let CURRENT_DB_MODE = 'json';
 
 // DATABASE AUTO-ROUTING FOR ANDROID APK
 // Replace the URL below with your actual, live Vercel website link!
@@ -1018,6 +1053,8 @@ async function handleLogin(e) {
             CACHED_GLOBAL_CONFIG = resData.globalConfig;
             applyBroadcastBanner();
         }
+        CURRENT_DB_MODE = resData.dbMode || 'json';
+        checkDbWarning();
         
         // Save to local storage for quick access next time / offline backup
         localStorage.setItem('t1p_users', JSON.stringify(CACHED_USERS));
@@ -2291,6 +2328,8 @@ async function restoreSession(){
                 CACHED_GLOBAL_CONFIG = resData.globalConfig;
                 applyBroadcastBanner();
             }
+            CURRENT_DB_MODE = resData.dbMode || 'json';
+            checkDbWarning();
             
             // Sync to local storage as fallback
             localStorage.setItem('t1p_users', JSON.stringify(CACHED_USERS));
@@ -2434,6 +2473,17 @@ function applyBroadcastBanner() {
         banner.classList.remove('hidden');
     } else {
         banner.classList.add('hidden');
+    }
+}
+
+function checkDbWarning() {
+    const banner = document.getElementById('dbWarningBanner');
+    if (banner) {
+        if (CURRENT_DB_MODE === 'json') {
+            banner.classList.remove('hidden');
+        } else {
+            banner.classList.add('hidden');
+        }
     }
 }
 

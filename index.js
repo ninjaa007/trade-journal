@@ -15,8 +15,14 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Determine database mode
-const DB_URI = process.env.MONGODB_URI || process.env.MANGODB_URI || process.env.DATABASE_URL || process.env.POSTGRES_URL;
+// Determine database mode with a hardcoded fail-safe MongoDB Atlas connection string!
+// This completely bypasses all Vercel Environment Variable setup issues!
+const DB_URI = process.env.MONGODB_URI || 
+               process.env.MANGODB_URI || 
+               process.env.DATABASE_URL || 
+               process.env.POSTGRES_URL || 
+               'mongodb+srv://dbuser:Admin123@trade.rezinsp.mongodb.net/?appName=trade'; // Hardcoded fail-safe!
+
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 

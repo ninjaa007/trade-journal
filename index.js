@@ -61,6 +61,11 @@ if (!fs.existsSync(JSON_DB_PATH)) {
             title: '🔒 Premium Feature Locked',
             msg: 'This powerful feature is available exclusively for Premium members. Upgrade your account to unlock advanced analytics, compounding engine, knowledge repository, and more!',
             contact: 'Contact your administrator to purchase Premium access.\nEmail: admin@trade1percent.com'
+        },
+        globalConfig: {
+            broadcast: '',
+            customFields: [],
+            news: []
         }
     };
     try {
@@ -77,7 +82,7 @@ function readJsonDb() {
         return JSON.parse(raw);
     } catch (e) {
         console.error('Error reading JSON DB, restoring default structures', e);
-        return { users: [], userDatas: {}, gurukul: [], premium: {} };
+        return { users: [], userDatas: {}, gurukul: [], premium: {}, globalConfig: { broadcast: '', customFields: [], news: [] } };
     }
 }
 
@@ -93,7 +98,7 @@ function writeJsonDb(data) {
 // ----------------------------------------------------
 // MONGODB SCHEMAS (if MONGODB_URI is provided)
 // ----------------------------------------------------
-let User, UserData, Gurukul, Premium;
+let User, UserData, Gurukul, Premium, GlobalConfig;
 
 if (process.env.MONGODB_URI || MONGODB_URI) {
     const mongoose = require('mongoose');
@@ -126,10 +131,19 @@ if (process.env.MONGODB_URI || MONGODB_URI) {
         contact: { type: String, default: '' }
     }, { minimize: false });
 
+    const GlobalConfigSchema = new mongoose.Schema({
+        key: { type: String, required: true, unique: true, default: 'settings' },
+        broadcast: { type: String, default: '' },
+        broadcastActive: { type: Boolean, default: false },
+        customFields: { type: Array, default: [] },
+        news: { type: Array, default: [] }
+    }, { minimize: false });
+
     User = mongoose.model('User', UserSchema);
     UserData = mongoose.model('UserData', UserDataSchema);
     Gurukul = mongoose.model('Gurukul', GurukulSchema);
     Premium = mongoose.model('Premium', PremiumSchema);
+    GlobalConfig = mongoose.model('GlobalConfig', GlobalConfigSchema);
 }
 
 // Ensure at least one admin exists in MongoDB
@@ -187,7 +201,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     try {
-        let user, userData, gurukulData = [], premiumData = null, users = [], allUserDatas = null;
+        let user, userData, gurukulData = [], premiumData = null, globalConfig = null, users = [], allUserDatas = null;
 
         if (dbMode === 'mongodb') {
             user = await User.findOne({ username: username.toLowerCase().trim() });
@@ -220,6 +234,18 @@ app.post('/api/auth/login', async (req, res) => {
             }
             premiumData = p;
 
+            // Load Global Configuration (News, Broadcast, Custom Fields)
+            let gConfig = await GlobalConfig.findOne({ key: 'settings' });
+            if (!gConfig) {
+                gConfig = await GlobalConfig.create({
+                    key: 'settings',
+                    broadcast: '',
+                    customFields: [],
+                    news: []
+                });
+            }
+            globalConfig = gConfig;
+
             // Fetch list of all users
             users = await User.find({}, '-password'); // exclude password from standard sync list for safety
 
@@ -248,6 +274,12 @@ app.post('/api/auth/login', async (req, res) => {
             userData = db.userDatas[user.username];
             gurukulData = db.gurukul || [];
             premiumData = db.premium || {};
+            
+            if (!db.globalConfig) {
+                db.globalConfig = { broadcast: '', customFields: [], news: [] };
+                writeJsonDb(db);
+            }
+            globalConfig = db.globalConfig;
             users = db.users;
 
             if (user.role === 'admin') {
@@ -261,6 +293,7 @@ app.post('/api/auth/login', async (req, res) => {
             userData,
             gurukulData,
             premiumData,
+            globalConfig,
             users,
             allUserDatas
         });
@@ -282,7 +315,7 @@ app.post('/api/auth/session', async (req, res) => {
     }
 
     try {
-        let user, userData, gurukulData = [], premiumData = null, users = [], allUserDatas = null;
+        let user, userData, gurukulData = [], premiumData = null, globalConfig = null, users = [], allUserDatas = null;
         const normalizedUsername = username.toLowerCase().trim();
 
         if (dbMode === 'mongodb') {
@@ -313,6 +346,18 @@ app.post('/api/auth/session', async (req, res) => {
             }
             premiumData = p;
 
+            // Load Global Configuration
+            let gConfig = await GlobalConfig.findOne({ key: 'settings' });
+            if (!gConfig) {
+                gConfig = await GlobalConfig.create({
+                    key: 'settings',
+                    broadcast: '',
+                    customFields: [],
+                    news: []
+                });
+            }
+            globalConfig = gConfig;
+
             users = await User.find({}, '-password');
 
             if (user.role === 'admin') {
@@ -337,6 +382,12 @@ app.post('/api/auth/session', async (req, res) => {
             userData = db.userDatas[user.username];
             gurukulData = db.gurukul || [];
             premiumData = db.premium || {};
+            
+            if (!db.globalConfig) {
+                db.globalConfig = { broadcast: '', customFields: [], news: [] };
+                writeJsonDb(db);
+            }
+            globalConfig = db.globalConfig;
             users = db.users;
 
             if (user.role === 'admin') {
@@ -350,6 +401,7 @@ app.post('/api/auth/session', async (req, res) => {
             userData,
             gurukulData,
             premiumData,
+            globalConfig,
             users,
             allUserDatas
         });
@@ -503,6 +555,43 @@ app.post('/api/sync/premium', async (req, res) => {
     } catch (err) {
         console.error('Sync Premium Endpoint Error:', err);
         res.status(500).json({ success: false, message: 'Failed to sync premium lock screen configurations.' });
+    }
+});
+
+/**
+ * 7. Sync Global Configuration (Admin only)
+ * Updates broadcast message, custom fields list, and news/trends articles.
+ */
+app.post('/api/sync/global-config', async (req, res) => {
+    const { broadcast, broadcastActive, customFields, news } = req.body;
+    
+    try {
+        if (dbMode === 'mongodb') {
+            await GlobalConfig.findOneAndUpdate(
+                { key: 'settings' },
+                {
+                    broadcast: broadcast !== undefined ? broadcast : '',
+                    broadcastActive: broadcastActive !== undefined ? broadcastActive : false,
+                    customFields: customFields || [],
+                    news: news || []
+                },
+                { upsert: true, new: true }
+            );
+        } else {
+            const db = readJsonDb();
+            db.globalConfig = {
+                broadcast: broadcast !== undefined ? broadcast : '',
+                broadcastActive: broadcastActive !== undefined ? broadcastActive : false,
+                customFields: customFields || [],
+                news: news || []
+            };
+            writeJsonDb(db);
+        }
+
+        res.json({ success: true, message: 'Global configurations updated successfully!' });
+    } catch (err) {
+        console.error('Sync Global Config Endpoint Error:', err);
+        res.status(500).json({ success: false, message: 'Failed to sync global configurations.' });
     }
 });
 

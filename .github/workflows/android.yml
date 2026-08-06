@@ -37,9 +37,6 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Add Android Platform & Build Signed AAB
         run: |
           cd cordova-app

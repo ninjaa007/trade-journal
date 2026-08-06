@@ -1,0 +1,54 @@
+name: Build Signed Android AAB for Play Store
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compile Signed Google Play Bundle (.aab)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Cordova
+        run: npm install -g cordova
+
+      - name: Create Cordova App
+        run: |
+          cordova create cordova-app com.trade1percent.journal "Trade1Percent"
+          cd cordova-app
+          # Remove default template files
+          rm -rf www/*
+          # Copy our updated frontend files (with the correct Vercel URL)
+          cp -r ../public/* www/
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Add Android Platform & Build Signed AAB
+        run: |
+          cd cordova-app
+          cordova platform add android@11.0.0
+          # Build a fully signed Release Android App Bundle (.aab)
+          cordova build android --release -- --packageType=bundle --keystore=../release.keystore --storePassword=trade123 --alias=trade1percent --password=trade123
+
+      - name: Upload Signed Play Store Bundle (.aab)
+        uses: actions/upload-artifact@v3
+        with:
+          name: Trade1Percent-GooglePlay-Bundle
+          path: cordova-app/platforms/android/app/build/outputs/bundle/release/app-release.aab

@@ -21,6 +21,7 @@ const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 
 let dbMode = 'json'; // default to JSON file fallback
+let lastConnectionError = null; // Debugging variable to capture exact connection errors
 
 let pgClient = null;
 let mongoose = null;
@@ -31,7 +32,7 @@ let User, UserData, Gurukul, Premium, GlobalConfig;
 // ----------------------------------------------------
 
 if (KV_URL && KV_TOKEN) {
-    // 1. VERCEL KV (REDIS) MODE (The 100% foolproof, 2-click database!)
+    // 1. VERCEL KV (REDIS) MODE
     console.log('✅ Vercel KV (Redis) credentials detected! Connecting...');
     dbMode = 'vercel_kv';
     ensureAdminExistsKV();
@@ -53,6 +54,7 @@ if (KV_URL && KV_TOKEN) {
         })
         .catch(err => {
             console.error('❌ PostgreSQL Connection Error. Falling back to JSON.', err.message);
+            lastConnectionError = 'PostgreSQL Error: ' + err.message;
             dbMode = 'json';
         });
 
@@ -81,10 +83,12 @@ if (KV_URL && KV_TOKEN) {
         })
         .catch(err => {
             console.error('❌ MongoDB Connection Error. Falling back to JSON database.', err.message);
+            lastConnectionError = 'MongoDB Error: ' + err.message;
             dbMode = 'json';
         });
 } else {
     console.log('ℹ️ No cloud database string found. Running in local JSON database mode (local-db.json).');
+    lastConnectionError = 'No database connection string (URI) found in process.env';
 }
 
 // ----------------------------------------------------
@@ -764,14 +768,6 @@ app.post('/api/sync/users', async (req, res) => {
     try {
         if (dbMode === 'vercel_kv') {
             await kvSet('t1p_users', users);
-            // Clean up KV user data files of deleted users
-            const activeUsernames = users.map(u => u.username.toLowerCase().trim());
-            const currentUsersList = await kvGet('t1p_users') || [];
-            for (const u of currentUsersList) {
-                if (u.username !== 'admin' && !activeUsernames.includes(u.username)) {
-                    // In KV we can just delete or ignore (ignoring is safe because we fetch based on user lists!)
-                }
-            }
 
         } else if (dbMode === 'postgres') {
             const currentUsers = users.map(u => u.username.toLowerCase().trim());
@@ -997,9 +993,25 @@ app.post('/api/sync/global-config', async (req, res) => {
 
         res.json({ success: true, message: 'Global configurations updated successfully!' });
     } catch (err) {
-        console.error('Sync Global Config Endpoint Error:', err);
+        console.error('Sync Global Config Error:', err);
         res.status(500).json({ success: false, message: 'Failed to sync global configurations.' });
     }
+});
+
+/**
+ * 8. Live Database Diagnostic Endpoint (Fail-safe Debugger!)
+ * Allows users to visit /api/debug-db in their browser to see the exact connection error!
+ */
+app.get('/api/debug-db', (req, res) => {
+    res.json({
+        dbMode: dbMode,
+        isMongodbUriDefined: !!process.env.MONGODB_URI,
+        isMangodbUriDefined: !!process.env.MANGODB_URI,
+        isDatabaseUrlDefined: !!process.env.DATABASE_URL,
+        isPostgresUrlDefined: !!process.env.POSTGRES_URL,
+        isKvRestUrlDefined: !!process.env.KV_REST_API_URL,
+        lastError: lastConnectionError || 'No connection errors recorded on this server container.'
+    });
 });
 
 // Wildcard routing to handle single-page-app entry point

@@ -40,6 +40,11 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
 
+      - name: Setup Gradle 7.6 (Force Cordova Compatibility)
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 7.6
+
       - name: Add Android Platform & Build Signed AAB
         run: |
           cd cordova-app

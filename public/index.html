@@ -128,6 +128,102 @@
             display: inline-block;
             margin: 2px;
         }
+        
+        /* Market Selector Cards */
+        .market-selector-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        .market-card {
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            transition: .3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        .market-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(255,215,0,0.15);
+        }
+        .market-logo {
+            width: 80px;
+            height: 80px;
+            background: var(--card2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            border: 2px solid var(--border);
+        }
+        .market-card:hover .market-logo {
+            border-color: var(--gold);
+            transform: scale(1.05);
+            transition: .3s;
+        }
+        .market-title { font-size: 20px; font-weight: 800; color: var(--text); }
+        .market-desc { font-size: 13px; color: var(--text2); line-height: 1.5; }
+        .market-lock-overlay {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(239,68,68,0.2);
+            color: var(--red);
+            border: 1px solid var(--red);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .back-markets-btn {
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--gold);
+            background: var(--card2);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: .3s;
+        }
+        .back-markets-btn:hover {
+            background: var(--card3);
+            border-color: var(--gold);
+        }
+        
+        /* Star award icon animation */
+        .gold-star-award {
+            color: #FFD700;
+            text-shadow: 0 0 8px rgba(255,215,0,0.6);
+            margin-left: 5px;
+            animation: bounce-star 2s infinite;
+            display: inline-block;
+        }
+        @keyframes bounce-star {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
         ::-webkit-scrollbar{width:8px;height:8px}
         ::-webkit-scrollbar-track{background:var(--bg)}
         ::-webkit-scrollbar-thumb{background:var(--gold);border-radius:10px}
@@ -446,14 +542,59 @@
 
     <!-- JOURNAL -->
     <div class="page" id="page-journal">
-        <div class="page-header">
-            <div><h1>Trading Journal</h1><p>Detailed trade records</p></div>
-            <div class="page-header-actions"><button class="btn btn-gold" onclick="openTradeModal()"><i class="fas fa-plus"></i> New Trade</button></div>
+        
+        <!-- 1. Market Selection Dashboard -->
+        <div id="journalSelector">
+            <div class="page-header">
+                <div><h1>📈 Select Trading Journal</h1><p>Choose your target financial market dashboard</p></div>
+            </div>
+            
+            <div class="market-selector-grid">
+                <!-- Indian Market Card -->
+                <div class="market-card" onclick="openIndianJournal()">
+                    <div class="market-logo" style="background: linear-gradient(135deg, #FF9933, #FFFFFF, #138808); font-size:32px">🇮🇳</div>
+                    <h3 class="market-title">Indian Market Journal</h3>
+                    <p class="market-desc">Track, analyze, and compound your NSE/BSE Equity, Futures, & Options trades with automatic score calculation.</p>
+                    <button class="btn btn-gold btn-sm" style="margin-top:10px">Open Indian Journal</button>
+                </div>
+                
+                <!-- Forex Market Card -->
+                <div class="market-card" onclick="openForexJournal()">
+                    <div class="market-lock-overlay" id="forexMarketLock" style="display:none"><i class="fas fa-lock"></i></div>
+                    <div class="market-logo" style="background: linear-gradient(135deg, #1e3a8a, #3b82f6); font-size:32px">🌍</div>
+                    <h3 class="market-title">Forex Market Journal</h3>
+                    <p class="market-desc">Track global currency pairs and gold trades with automatic Pip and Lot-size USD ($) P&L calculation.</p>
+                    <button class="btn btn-gold btn-sm" id="forexCardBtn" style="margin-top:10px">Open Forex Journal</button>
+                </div>
+            </div>
         </div>
-        <div class="table-card">
-            <div class="table-header"><div class="search-box"><i class="fas fa-search"></i><input type="text" placeholder="Search..." id="journalSearch" oninput="filterJournalTable()"></div></div>
-            <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Setup</th><th>Entry</th><th>SL</th><th>Target</th><th>Exit</th><th>P&amp;L</th><th>Result</th><th>Emotion</th><th>Score</th><th>Grade</th><th>Actions</th></tr></thead><tbody id="journalTable"></tbody></table></div>
+        
+        <!-- 2. Indian Market Journal Area -->
+        <div id="indianJournalArea" style="display:none">
+            <button class="back-markets-btn" onclick="showJournalSelector()"><i class="fas fa-arrow-left"></i> Back to Markets</button>
+            <div class="page-header">
+                <div><h1>🇮🇳 Indian Market Trading Journal</h1><p>Detailed trade logs for National Stock Exchange (NSE/BSE)</p></div>
+                <div class="page-header-actions"><button class="btn btn-gold" onclick="openTradeModal()"><i class="fas fa-plus"></i> New Trade</button></div>
+            </div>
+            <div class="table-card">
+                <div class="table-header"><div class="search-box"><i class="fas fa-search"></i><input type="text" placeholder="Search..." id="journalSearch" oninput="filterJournalTable()"></div></div>
+                <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Setup</th><th>Entry</th><th>SL</th><th>Target</th><th>Exit</th><th>P&amp;L</th><th>Result</th><th>Emotion</th><th>Score</th><th>Grade</th><th>Actions</th></tr></thead><tbody id="journalTable"></tbody></table></div>
+            </div>
         </div>
+        
+        <!-- 3. Forex Market Journal Area -->
+        <div id="forexJournalArea" style="display:none">
+            <button class="back-markets-btn" onclick="showJournalSelector()"><i class="fas fa-arrow-left"></i> Back to Markets</button>
+            <div class="page-header">
+                <div><h1>🌍 Forex Market Trading Journal</h1><p>Detailed trade logs for Global Currency Pairs & Gold (XAUUSD)</p></div>
+                <div class="page-header-actions"><button class="btn btn-gold" onclick="openForexTradeModal()"><i class="fas fa-plus"></i> New Forex Trade</button></div>
+            </div>
+            <div class="table-card">
+                <div class="table-header"><div class="search-box"><i class="fas fa-search"></i><input type="text" placeholder="Search..." id="forexSearch" oninput="filterForexTable()"></div></div>
+                <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Pair</th><th>Type</th><th>Lot Size</th><th>Entry</th><th>SL</th><th>Target</th><th>Exit</th><th>Pips</th><th>P&amp;L ($)</th><th>Result</th><th>Score</th><th>Grade</th><th>Actions</th></tr></thead><tbody id="forexJournalTable"></tbody></table></div>
+            </div>
+        </div>
+        
     </div>
 
     <!-- ANALYTICS -->
@@ -497,15 +638,43 @@
     <div class="page" id="page-reports">
         <div class="page-header">
             <div><h1>My Reports</h1><p>Download your trading analysis reports</p></div>
-            <div class="page-header-actions">
-                <button class="btn btn-danger" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> Export PDF</button>
-                <button class="btn btn-success" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Export Excel</button>
+        </div>
+        
+        <div class="tab-bar" id="reportsTabBar" style="margin-bottom: 20px">
+            <div class="tab-btn active" onclick="showReportsTab(this,'repIndian')">Indian Market</div>
+            <div class="tab-btn" id="repForexTabBtn" style="display:none" onclick="showReportsTab(this,'repForex')">Forex Market</div>
+        </div>
+        
+        <!-- Indian Market Reports -->
+        <div id="repIndian" class="reports-tab">
+            <div class="page-header" style="margin-bottom:15px">
+                <div></div>
+                <div class="page-header-actions">
+                    <button class="btn btn-danger btn-sm" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> Export PDF</button>
+                    <button class="btn btn-success btn-sm" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Export Excel</button>
+                </div>
+            </div>
+            <div class="stats-grid" id="reportStats"></div>
+            <div class="table-card">
+                <h3 style="margin-bottom:15px">Indian Market - Complete Trade Log</h3>
+                <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Setup</th><th>Entry</th><th>SL</th><th>Target</th><th>Exit</th><th>P&amp;L</th><th>Result</th><th>Emotion</th><th>Mistake</th><th>Score</th><th>Grade</th></tr></thead><tbody id="reportTable"></tbody></table></div>
             </div>
         </div>
-        <div class="stats-grid" id="reportStats"></div>
-        <div class="table-card">
-            <h3 style="margin-bottom:15px">Complete Trade Log</h3>
-            <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Setup</th><th>Entry</th><th>SL</th><th>Target</th><th>Exit</th><th>P&amp;L</th><th>Result</th><th>Emotion</th><th>Mistake</th><th>Score</th><th>Grade</th></tr></thead><tbody id="reportTable"></tbody></table></div>
+        
+        <!-- Forex Market Reports -->
+        <div id="repForex" class="reports-tab" style="display:none">
+            <div class="page-header" style="margin-bottom:15px">
+                <div></div>
+                <div class="page-header-actions">
+                    <button class="btn btn-danger btn-sm" onclick="exportForexPDF()"><i class="fas fa-file-pdf"></i> Export PDF</button>
+                    <button class="btn btn-success btn-sm" onclick="exportForexExcel()"><i class="fas fa-file-excel"></i> Export Excel</button>
+                </div>
+            </div>
+            <div class="stats-grid" id="forexReportStats"></div>
+            <div class="table-card">
+                <h3 style="margin-bottom:15px">Forex Market - Complete Trade Log</h3>
+                <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Pair</th><th>Type</th><th>Lot Size</th><th>Entry</th><th>SL</th><th>Target</th><th>Exit</th><th>Pips</th><th>P&amp;L ($)</th><th>Result</th><th>Score</th><th>Grade</th></tr></thead><tbody id="forexReportTable"></tbody></table></div>
+            </div>
         </div>
     </div>
 
@@ -522,6 +691,7 @@
             <div class="tab-btn" onclick="showSettingsTab(this,'setSetups')">My Setups</div>
             <div class="tab-btn" onclick="showSettingsTab(this,'setProfile')">Profile</div>
             <div class="tab-btn" onclick="showSettingsTab(this,'setPassword')">Change Password</div>
+            <div class="tab-btn" id="tabDbBtn" style="display:none" onclick="showSettingsTab(this,'setDb')">Cloud Database</div>
         </div>
         <div id="setMaster" class="settings-tab">
             <div class="table-card">
@@ -661,6 +831,20 @@
             <div class="form-group"><label>Message</label><textarea id="premiumMsg" rows="5" placeholder="This feature requires a premium subscription..."></textarea></div>
             <div class="form-group"><label>Contact Details</label><textarea id="premiumContact" rows="3" placeholder="Contact admin at: email@example.com or +91-XXXXXXXXXX"></textarea></div>
             <button class="btn btn-gold" onclick="savePremiumMsg()"><i class="fas fa-save"></i> Save Message</button>
+        </div>
+    </div>
+
+    <!-- TRADINGVIEW LIVE CHARTS (Premium Feature) -->
+    <div class="page" id="page-tradingview_charts">
+        <div class="page-header">
+            <div><h1>📊 Live Markets Charting</h1><p>View interactive, real-time charts and indicators powered by TradingView</p></div>
+        </div>
+        <div class="table-card" style="height: calc(100vh - 180px); padding: 5px; overflow: hidden">
+            <!-- TradingView Widget BEGIN -->
+            <div class="tradingview-widget-container" style="height:100%; width:100%">
+                <div id="tradingview_chart" style="height: 100%; width: 100%"></div>
+            </div>
+            <!-- TradingView Widget END -->
         </div>
     </div>
 
@@ -817,10 +1001,30 @@
 <div class="modal" id="userModal">
     <div class="modal-box sm">
         <div class="modal-header"><div class="modal-title" id="userModalTitle">Add User</div><button class="close-btn" onclick="closeModal('userModal')"><i class="fas fa-times"></i></button></div>
-        <div class="modal-body">
+        <div class="modal-body" style="max-height: calc(100vh - 200px); overflow-y: auto;">
             <div class="form-group"><label>Full Name</label><input type="text" id="uName" placeholder="Enter full name"></div>
             <div class="form-group"><label>Username</label><input type="text" id="uUsername" placeholder="Enter username"></div>
             <div class="form-group"><label>Password</label><input type="password" id="uPassword" placeholder="Enter password"></div>
+            
+            <!-- User Status & Validity Settings -->
+            <div style="background: var(--card2); border: 2px solid var(--border); padding: 15px; border-radius: 12px; margin-bottom: 15px">
+                <div class="form-group" style="margin-bottom: 12px">
+                    <label>Account Status</label>
+                    <select id="uStatus" style="width:100%">
+                        <option value="active">🟢 Active</option>
+                        <option value="deactivated">🔴 Deactivated</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-bottom:0">
+                    <input type="checkbox" id="uApplyValidity" onchange="toggleUserValidityUI()" style="width:auto">
+                    <label for="uApplyValidity" style="margin-bottom:0; cursor:pointer">Apply Account Validity Dates</label>
+                </div>
+                <div class="form-grid" id="uValidityDatesGroup" style="display:none; grid-template-columns: 1fr 1fr; gap:10px; margin-top:12px">
+                    <div class="form-group" style="margin-bottom:0"><label>Valid From</label><input type="date" id="uValidFrom"></div>
+                    <div class="form-group" style="margin-bottom:0"><label>Valid To</label><input type="date" id="uValidTo"></div>
+                </div>
+            </div>
+
             <div class="admin-section">
                 <h3>🔐 Feature Access Permissions</h3>
                 <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Dashboard, Journal, Analytics, Reports & Settings are always enabled. Toggle additional features below.</p>
@@ -923,7 +1127,8 @@ const API_BASE = (window.location.protocol === 'file:' || window.location.hostna
 
 const LOCKABLE = [
     { key:'compounding', label:'Compounding Engine', icon:'fa-rocket' },
-    { key:'gurukul', label:'Gurukul (Knowledge)', icon:'fa-book-open' }
+    { key:'gurukul', label:'Gurukul (Knowledge)', icon:'fa-book-open' },
+    { key:'tradingview_charts', label:'Live Charts', icon:'fa-chart-area' }
 ];
 const DEFAULT_PAGES = ['dashboard','journal','analytics','reports','settings'];
 
@@ -1142,6 +1347,12 @@ function initApp(){
     updateSidebar();
     buildNav();
     showPage('dashboard');
+    
+    // Toggle the Admin Cloud Database setting tab visibility strictly for Admin!
+    const dbBtn = document.getElementById('tabDbBtn');
+    if (dbBtn) {
+        dbBtn.style.display = (CU && CU.role === 'admin') ? 'block' : 'none';
+    }
 }
 
 function updateSidebar(){
@@ -1169,6 +1380,11 @@ function buildNav(){
     items.push({key:'news',label:'News & Trends',icon:'fa-newspaper',badge: badgeHTML});
 
     if(CU.role==='admin'){
+        // Admins get compounding, gurukul, live charts fully unlocked
+        items.push({key:'compounding',label:'Compounding Engine',icon:'fa-rocket'});
+        items.push({key:'gurukul',label:'Gurukul (Knowledge)',icon:'fa-book-open'});
+        items.push({key:'tradingview_charts',label:'Live Charts',icon:'fa-chart-area'});
+        
         items.push({key:'adminUsers',label:'User Management',icon:'fa-users-cog',admin:true});
         items.push({key:'adminReports',label:'Admin Reports',icon:'fa-file-medical',admin:true});
         items.push({key0:'adminViewUser',key:'adminViewUser',label:'User Data Inspector',icon:'fa-search',admin:true});
@@ -1579,11 +1795,18 @@ function calcTradeMetrics(){
     const q=+document.getElementById('tQty').value||0;
     if(e&&sl&&tg){
         const risk=Math.abs(e-sl), reward=Math.abs(tg-e);
-        document.getElementById('calcRR').textContent='1:'+(reward/risk).toFixed(2);
+        const ratio = risk > 0 ? (reward/risk) : 0;
+        document.getElementById('calcRR').textContent='1 : '+ratio.toFixed(2);
     }
     if(e&&sl&&ex&&q){
-        const risk=Math.abs(e-sl), rew=Math.abs(ex-e);
-        document.getElementById('calcARR').textContent='1:'+(rew/risk).toFixed(2);
+        const risk=Math.abs(e-sl);
+        const actualReward = ex-e; // positive for buy wins, handles shorting correctly too
+        const ratio = risk > 0 ? (actualReward/risk) : 0;
+        if (ratio >= 0) {
+            document.getElementById('calcARR').textContent='1 : '+ratio.toFixed(2);
+        } else {
+            document.getElementById('calcARR').textContent='-1 : '+Math.abs(ratio).toFixed(2);
+        }
         const pl=(ex-e)*q;
         document.getElementById('calcPL').textContent='₹'+pl.toFixed(2);
         document.getElementById('calcPL').style.color=pl>=0?'var(--green)':'var(--red)';
@@ -1591,15 +1814,33 @@ function calcTradeMetrics(){
 }
 
 function calcTradeScore(){
-    const qMap={Perfect:30,Good:22,Average:15,'Bad Setup':8,'No Setup/Faltugiri':0};
-    let score=qMap[document.getElementById('tQuality').value]||0;
-    ['cSetup','cEntry','cSL','cOver'].forEach(id=>{if(document.getElementById(id).checked)score+=17.5});
-    document.getElementById('calcScore').textContent=Math.round(score)+'/100';
-    let g='Needs Work';
-    if(score>=90)g='A+';else if(score>=80)g='A';else if(score>=70)g='B';else if(score>=60)g='C';
-    document.getElementById('calcGrade').textContent=g;
-    const cMap={'A+':'var(--green)',A:'var(--blue2)',B:'var(--orange)',C:'var(--red)','Needs Work':'var(--red)'};
-    document.getElementById('calcGrade').style.color=cMap[g];
+    const checklistCheckedCount = ['cSetup','cEntry','cSL','cOver'].filter(id => document.getElementById(id).checked).length;
+    const checklistScore = checklistCheckedCount * 22.5; // Ticking all 4 gives exactly 90 points
+    
+    // Setup Quality points (Max 4)
+    const qMap = { Perfect: 4, Good: 3, Average: 2, 'Bad Setup': 1, 'No Setup/Faltugiri': 0 };
+    const setupQualityScore = qMap[document.getElementById('tQuality').value] || 0;
+    
+    // Emotion points (Max 3)
+    const emotionVal = document.getElementById('tEmotion').value;
+    const emotionScore = (emotionVal === 'Calm' || emotionVal === 'Confident') ? 3 : 1;
+    
+    // Mistake points (Max 3)
+    const mistakeVal = document.getElementById('tMistake').value;
+    const mistakeScore = (!mistakeVal || mistakeVal === 'No Mistake' || mistakeVal === '') ? 3 : 0;
+    
+    const score = checklistScore + setupQualityScore + emotionScore + mistakeScore;
+    document.getElementById('calcScore').textContent = Math.round(score) + '/100';
+    
+    let g = 'Needs Work';
+    if (score >= 95) g = '🌟 Legend';
+    else if (score >= 85) g = 'A+';
+    else if (score >= 70) g = 'A';
+    else if (score >= 50) g = 'B';
+    
+    document.getElementById('calcGrade').textContent = g;
+    const cMap = { '🌟 Legend': 'var(--gold)', 'A+': 'var(--green)', 'A': 'var(--blue3)', 'B': 'var(--orange)', 'Needs Work': 'var(--red)' };
+    document.getElementById('calcGrade').style.color = cMap[g] || 'var(--red)';
 }
 
 function saveTrade(){
@@ -1628,12 +1869,51 @@ function saveTrade(){
         t.customFields[fieldId] = input.value;
     });
     if(!t.setup||!t.result||!t.emotion){alert('Please fill all required fields');return;}
-    t.plannedRR=Math.abs(t.target-t.entry)/Math.abs(t.entry-t.sl)||0;
-    t.actualRR=Math.abs(t.exit-t.entry)/Math.abs(t.entry-t.sl)||0;
-    t.pl=(t.exit-t.entry)*t.quantity;
-    const qMap={Perfect:30,Good:22,Average:15,'Bad Setup':8,'No Setup/Faltugiri':0};
-    t.score=(qMap[t.setupQuality]||0)+(Object.values(t.checklist).filter(v=>v).length*17.5);
-    if(t.score>=90)t.grade='A+';else if(t.score>=80)t.grade='A';else if(t.score>=70)t.grade='B';else if(t.score>=60)t.grade='C';else t.grade='Needs Work';
+    
+    // Detailed RR and Score Calculations (Positively Motivating)
+    const risk = Math.abs(t.entry - t.sl);
+    const plannedReward = Math.abs(t.target - t.entry);
+    const actualReward = t.exit - t.entry; // handles buy-wins
+    
+    t.plannedRRValue = risk > 0 ? (plannedReward / risk) : 0;
+    t.actualRRValue = risk > 0 ? (actualReward / risk) : 0;
+    
+    t.plannedRR = risk > 0 ? `1 : ${t.plannedRRValue.toFixed(2)}` : '1 : 0';
+    if (t.actualRRValue >= 0) {
+        t.actualRR = risk > 0 ? `1 : ${t.actualRRValue.toFixed(2)}` : '1 : 0';
+    } else {
+        t.actualRR = risk > 0 ? `-1 : ${Math.abs(t.actualRRValue).toFixed(2)}` : '-1 : 0';
+    }
+    
+    // Award a Golden Star for high R-multiple trades (>= 1:6)
+    t.hasStar = (t.actualRRValue >= 6.00);
+    
+    t.pl = (t.exit - t.entry) * t.quantity;
+    
+    const checklistScore = Object.values(t.checklist).filter(v=>v).length * 22.5; // Ticking all 4 gives 90
+    const qMap = { Perfect: 4, Good: 3, Average: 2, 'Bad Setup': 1, 'No Setup/Faltugiri': 0 };
+    const setupQualityScore = qMap[t.setupQuality] || 0;
+    const emotionScore = (t.emotion === 'Calm' || t.emotion === 'Confident') ? 3 : 1;
+    const mistakeScore = (!t.mistake || t.mistake === 'No Mistake' || t.mistake === '') ? 3 : 0;
+    
+    t.score = checklistScore + setupQualityScore + emotionScore + mistakeScore;
+    
+    if (t.score >= 95) {
+        t.grade = '🌟 Legend';
+        t.gradeText = 'Outstanding trade execution!';
+    } else if (t.score >= 85) {
+        t.grade = 'A+';
+        t.gradeText = 'Excellent discipline and setup selection';
+    } else if (t.score >= 70) {
+        t.grade = 'A';
+        t.gradeText = 'Good trade, minor corrections possible';
+    } else if (t.score >= 50) {
+        t.grade = 'B';
+        t.gradeText = 'Discipline kept but can improve setup/emotions';
+    } else {
+        t.grade = 'Needs Work';
+        t.gradeText = 'Keep your chin up! Every mistake is a lesson to make you a better trader.';
+    }
 
     if(editTradeId){const idx=UD.trades.findIndex(x=>x.id===editTradeId);UD.trades[idx]=t;}
     else UD.trades.push(t);
@@ -1782,7 +2062,22 @@ function deleteGurukulItem(i){ if(confirm('Delete this content?')){const data=ge
 /* ============================================================
    REPORTS
    ============================================================ */
+function showReportsTab(el, tabId) {
+    document.querySelectorAll('.reports-tab').forEach(t => t.style.display = 'none');
+    document.querySelectorAll('#reportsTabBar .tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).style.display = '';
+    el.classList.add('active');
+}
+
 function refreshReports(){
+    // 1. Toggle Forex Reports tab button strictly based on access
+    const hasForexAccess = CU && (CU.role === 'admin' || (CU.access && CU.access.forex_journal));
+    document.getElementById('repForexTabBtn').style.display = hasForexAccess ? 'block' : 'none';
+    
+    // Show default tab
+    showReportsTab(document.querySelector('#reportsTabBar .tab-btn'), 'repIndian');
+
+    // 2. Load Indian Reports
     const trades=UD.trades.filter(t=>t.result!=='No Trading');
     const totalPL=trades.reduce((s,t)=>s+t.pl,0);
     const wins=trades.filter(t=>t.result==='Win').length;
@@ -1799,12 +2094,42 @@ function refreshReports(){
         <div class="stat-card"><div class="stat-label">Expectancy</div><div class="stat-value">₹${exp.toFixed(0)}</div></div>
     `;
 
-    document.getElementById('reportTable').innerHTML=UD.trades.map(t=>`<tr>
-        <td>${t.number}</td><td>${fmtDate(t.date)}</td><td>${t.setup}</td><td>${t.entry}</td><td>${t.sl}</td><td>${t.target}</td><td>${t.exit}</td>
-        <td style="color:${t.pl>=0?'var(--green)':'var(--red)'}">${t.pl.toFixed(2)}</td>
-        <td><span class="badge ${badgeCls(t.result)}">${t.result}</span></td><td>${t.emotion}</td><td>${t.mistake||'-'}</td>
-        <td>${Math.round(t.score)}</td><td><span class="grade ${gradeCls(t.grade)}">${t.grade}</span></td>
-    </tr>`).join('');
+    document.getElementById('reportTable').innerHTML=UD.trades.map(t=>{
+        const starHTML = t.hasStar ? '<span class="gold-star-award"><i class="fas fa-star"></i></span>' : '';
+        return `<tr>
+            <td>${t.number}${starHTML}</td><td>${fmtDate(t.date)}</td><td>${t.setup}</td><td>${t.entry}</td><td>${t.sl}</td><td>${t.target}</td><td>${t.exit}</td>
+            <td style="color:${t.pl>=0?'var(--green)':'var(--red)'}">${t.pl.toFixed(2)}</td>
+            <td><span class="badge ${badgeCls(t.result)}">${t.result}</span></td><td>${t.emotion}</td><td>${t.mistake||'-'}</td>
+            <td>${Math.round(t.score)}</td><td><span class="grade ${gradeCls(t.grade)}">${t.grade}</span></td>
+        </tr>`;
+    }).join('');
+    
+    // 3. Load Forex Reports
+    UD.forexTrades = UD.forexTrades || [];
+    const fTrades=UD.forexTrades.filter(t=>t.result!=='No Trading');
+    const fTotalPL=fTrades.reduce((s,t)=>s+t.pl,0);
+    const fWins=fTrades.filter(t=>t.result==='Win').length;
+    const fWr=fTrades.length?((fWins/fTrades.length)*100).toFixed(1):0;
+    const fAvgWin=fTrades.filter(t=>t.result==='Win').reduce((s,t)=>s+t.pl,0)/(fWins||1);
+    const fLosses=fTrades.filter(t=>t.result==='Loss');
+    const fAvgLoss=Math.abs(fLosses.reduce((s,t)=>s+t.pl,0)/(fLosses.length||1));
+    const fExp=((fWr/100)*fAvgWin)-((1-fWr/100)*fAvgLoss);
+    
+    document.getElementById('forexReportStats').innerHTML=`
+        <div class="stat-card"><div class="stat-label">Total Trades</div><div class="stat-value">${UD.forexTrades.length}</div></div>
+        <div class="stat-card"><div class="stat-label">Total P&amp;L ($)</div><div class="stat-value" style="color:${fTotalPL>=0?'var(--green)':'var(--red)'}">$${fTotalPL.toFixed(2)}</div></div>
+        <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value">${fWr}%</div></div>
+        <div class="stat-card"><div class="stat-label">Expectancy</div><div class="stat-value">$${fExp.toFixed(2)}</div></div>
+    `;
+    
+    document.getElementById('forexReportTable').innerHTML=UD.forexTrades.map(t=>{
+        const starHTML = t.hasStar ? '<span class="gold-star-award"><i class="fas fa-star"></i></span>' : '';
+        return `<tr>
+            <td style="font-weight:700">${t.number}${starHTML}</td><td>${fmtDate(t.date)}</td><td style="color:var(--gold);font-weight:700">${t.pair}</td><td><span class="badge ${t.type==='Buy'?'win':'loss'}">${t.type}</span></td><td>${t.lotSize}</td><td>${t.entry}</td><td>${t.sl}</td><td>${t.target}</td><td>${t.exit}</td><td>${t.pips.toFixed(1)}</td>
+            <td style="color:${t.pl>=0?'var(--green)':'var(--red)'};font-weight:700">$${t.pl.toFixed(2)}</td>
+            <td><span class="badge ${badgeCls(t.result)}">${t.result}</span></td><td>${Math.round(t.score)}</td><td><span class="grade ${gradeCls(t.grade)}">${t.grade}</span></td>
+        </tr>`;
+    }).join('');
 }
 
 /* ============================================================
@@ -1974,10 +2299,30 @@ function renderAdminUsers(){
         const access=u.access||{};
         const perms=LOCKABLE.map(f=>`<span style="font-size:11px;padding:2px 8px;border-radius:8px;background:${access[f.key]?'rgba(16,185,129,.2)':'rgba(239,68,68,.2)'};color:${access[f.key]?'var(--green)':'var(--red)'}">${f.label}: ${access[f.key]?'✓':'✗'}</span>`).join(' ');
         const pic=u.profile&&u.profile.profilePic;
-        return `<div class="user-list-item">
+        
+        const statusHTML = u.status === 'deactivated' 
+            ? '<span class="custom-field-badge" style="background:rgba(239,68,68,0.1);color:var(--red);border-color:var(--red)">Deactivated</span>' 
+            : '<span class="custom-field-badge" style="background:rgba(16,185,129,0.1);color:var(--green);border-color:var(--green)">Active</span>';
+            
+        let validityHTML = '';
+        if (u.profile && u.profile.apply_validity) {
+            validityHTML = `<span style="font-size:11px;color:var(--text2);margin-left:10px"><i class="fas fa-calendar-alt"></i> Valid: ${fmtDate(u.profile.valid_from)} to ${fmtDate(u.profile.valid_to)}</span>`;
+        } else {
+            validityHTML = `<span style="font-size:11px;color:var(--text2);margin-left:10px"><i class="fas fa-calendar-alt"></i> Validity: Lifetime</span>`;
+        }
+
+        return `<div class="user-list-item" style="background: var(--card2); border: 1px solid var(--border); padding: 15px; border-radius: 12px; margin-bottom: 12px">
             <div class="user-list-left">
                 <div class="user-list-avatar">${pic?`<img src="${pic}">`:(u.fullname||u.username).charAt(0).toUpperCase()}</div>
-                <div><div style="font-weight:700">${u.fullname||u.username}</div><div style="font-size:12px;color:var(--text2)">@${u.username}</div><div style="margin-top:4px">${perms}</div></div>
+                <div>
+                    <div style="font-weight:700; display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                        <span>${u.fullname||u.username}</span> 
+                        ${statusHTML}
+                        ${validityHTML}
+                    </div>
+                    <div style="font-size:12px;color:var(--text2)">@${u.username}</div>
+                    <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px">${perms}</div>
+                </div>
             </div>
             <div style="display:flex;gap:6px">
                 <button class="btn btn-secondary btn-sm" onclick="editAdminUser(${i})"><i class="fas fa-edit"></i> Edit</button>
@@ -1987,12 +2332,25 @@ function renderAdminUsers(){
     }).join('');
 }
 
+function toggleUserValidityUI() {
+    const checked = document.getElementById('uApplyValidity').checked;
+    document.getElementById('uValidityDatesGroup').style.display = checked ? 'grid' : 'none';
+}
+
 function openUserModal(){
     editUserIdx=null;
     document.getElementById('userModalTitle').textContent='Add User';
     document.getElementById('uName').value='';
     document.getElementById('uUsername').value='';
     document.getElementById('uPassword').value='';
+    
+    // Reset status & validity fields
+    document.getElementById('uStatus').value = 'active';
+    document.getElementById('uApplyValidity').checked = false;
+    document.getElementById('uValidFrom').value = '';
+    document.getElementById('uValidTo').value = '';
+    toggleUserValidityUI();
+    
     renderPermGrid({});
     document.getElementById('userModal').classList.add('active');
 }
@@ -2007,17 +2365,38 @@ function editAdminUser(i){
     document.getElementById('uName').value=u.fullname||'';
     document.getElementById('uUsername').value=u.username;
     document.getElementById('uPassword').value=u.password;
+    
+    // Populate status & validity fields
+    document.getElementById('uStatus').value = u.status || 'active';
+    const prof = u.profile || {};
+    document.getElementById('uApplyValidity').checked = !!prof.apply_validity;
+    document.getElementById('uValidFrom').value = prof.valid_from || '';
+    document.getElementById('uValidTo').value = prof.valid_to || '';
+    toggleUserValidityUI();
+    
     renderPermGrid(u.access||{});
     document.getElementById('userModal').classList.add('active');
 }
 
 function renderPermGrid(access){
-    document.getElementById('userPermGrid').innerHTML=LOCKABLE.map(f=>`
+    // Automatically make Indian Market true if not set
+    const indianMarketChecked = access.indian_market !== undefined ? access.indian_market : true;
+    
+    let html = `
+        <div class="perm-item">
+            <span><i class="fas fa-flag" style="color:var(--gold);margin-right:6px"></i>Indian Market Journal</span>
+            <label class="toggle-switch"><input type="checkbox" id="perm_indian_market" ${indianMarketChecked?'checked':''}><span class="toggle-slider"></span></label>
+        </div>
+    `;
+    
+    html += LOCKABLE.map(f=>`
         <div class="perm-item">
             <span><i class="fas ${f.icon}" style="color:var(--gold);margin-right:6px"></i>${f.label}</span>
             <label class="toggle-switch"><input type="checkbox" id="perm_${f.key}" ${access[f.key]?'checked':''}><span class="toggle-slider"></span></label>
         </div>
     `).join('');
+    
+    document.getElementById('userPermGrid').innerHTML = html;
 }
 
 function saveUser(){
@@ -2025,17 +2404,42 @@ function saveUser(){
     const username=document.getElementById('uUsername').value.trim();
     const password=document.getElementById('uPassword').value;
     if(!name||!username||!password){alert('All fields are required');return;}
+    
+    const status = document.getElementById('uStatus').value;
+    const applyValidity = document.getElementById('uApplyValidity').checked;
+    const validFrom = document.getElementById('uValidFrom').value;
+    const validTo = document.getElementById('uValidTo').value;
+    
     const access={};
+    access.indian_market = document.getElementById('perm_indian_market').checked;
     LOCKABLE.forEach(f=>{access[f.key]=document.getElementById('perm_'+f.key).checked});
+    
     const users=getUsers();
     if(editUserIdx!==null){
         users[editUserIdx].fullname=name;
         users[editUserIdx].username=username;
         users[editUserIdx].password=password;
+        users[editUserIdx].status=status;
+        users[editUserIdx].profile = users[editUserIdx].profile || {};
+        users[editUserIdx].profile.apply_validity = applyValidity;
+        users[editUserIdx].profile.valid_from = validFrom;
+        users[editUserIdx].profile.valid_to = validTo;
         users[editUserIdx].access=access;
     } else {
         if(users.find(u=>u.username===username)){alert('Username already exists');return;}
-        users.push({username,password,fullname:name,role:'user',access,profile:{}});
+        users.push({
+            username,
+            password,
+            fullname:name,
+            role:'user',
+            status:status,
+            access,
+            profile: {
+                apply_validity: applyValidity,
+                valid_from: validFrom,
+                valid_to: validTo
+            }
+        });
     }
     saveUsers(users);
     closeModal('userModal');
@@ -2211,6 +2615,118 @@ function savePremiumMsg(){
 function exportPDF(){ generatePDF(UD.trades.map(t=>({...t,_user:CU.fullname||CU.username})),'My Trading Report'); }
 function exportExcel(){ generateExcel(UD.trades.map(t=>({...t,_user:CU.fullname||CU.username})),'My_Trading_Report'); }
 
+function exportForexPDF(){ generateForexPDF((UD.forexTrades || []).map(t=>({...t,_user:CU.fullname||CU.username})),'My Forex Trading Report'); }
+function exportForexExcel(){ generateForexExcel((UD.forexTrades || []).map(t=>({...t,_user:CU.fullname||CU.username})),'My_Forex_Trading_Report'); }
+
+function generateForexPDF(trades, title){
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF();
+    doc.setFontSize(20);
+    doc.setTextColor(180,150,0);
+    doc.text('Trade 1% (Forex) — '+title, 14, 22);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text('Generated: '+new Date().toLocaleString(), 14, 30);
+
+    // Stats
+    const realTrades=trades.filter(t=>t.result!=='No Trading');
+    const totalPL=realTrades.reduce((s,t)=>s+t.pl,0);
+    const wins=realTrades.filter(t=>t.result==='Win').length;
+    const wr=realTrades.length?((wins/realTrades.length)*100).toFixed(1):0;
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text(`Total Trades: ${trades.length}  |  Win Rate: ${wr}%  |  Total P&L: $${totalPL.toFixed(2)} USD`, 14, 40);
+
+    const cf = CACHED_GLOBAL_CONFIG.customFields || [];
+    
+    const headers = ['User','#','Date','Pair','Type','Lots','Entry','SL','Target','Exit','Pips','P&L ($)','Result','Score','Grade'];
+    cf.forEach(f => headers.push(f.label));
+    
+    const rows = trades.map(t => {
+        const row = [
+            t._user||'', 
+            t.number + (t.hasStar ? ' ⭐' : ''), 
+            fmtDate(t.date), 
+            t.pair,
+            t.type,
+            t.lotSize,
+            t.entry, 
+            t.sl, 
+            t.target, 
+            t.exit,
+            t.pips.toFixed(1),
+            '$'+t.pl.toFixed(2), 
+            t.result, 
+            Math.round(t.score), 
+            t.grade
+        ];
+        cf.forEach(f => {
+            const val = t.customFields && t.customFields[f.id] !== undefined ? t.customFields[f.id] : '-';
+            row.push(val);
+        });
+        return row;
+    });
+
+    doc.autoTable({
+        startY:48,
+        head:[headers],
+        body:rows,
+        theme:'grid',
+        styles:{fontSize:6,cellPadding:1.5},
+        headStyles:{fillColor:[30,64,175],textColor:255,fontSize:6},
+        alternateRowStyles:{fillColor:[245,245,255]},
+        didParseCell:function(data){
+            if(data.section==='body'&&data.column.index===11){
+                const val=data.cell.raw;
+                if(val&&val.toString().includes('-'))data.cell.styles.textColor=[220,38,38];
+                else data.cell.styles.textColor=[16,185,129];
+            }
+        }
+    });
+
+    doc.save(title.replace(/\s/g,'_')+'.pdf');
+}
+
+function generateForexExcel(trades, title){
+    const cf = CACHED_GLOBAL_CONFIG.customFields || [];
+    const rows=trades.map(t=>{
+        const baseRow = {
+            User:t._user||'',
+            '#':t.number,
+            'Has Star': t.hasStar ? 'Y' : 'N',
+            Date:t.date,
+            Pair:t.pair,
+            Type:t.type,
+            'Lot Size':t.lotSize,
+            Entry:t.entry,
+            SL:t.sl,
+            Target:t.target,
+            Exit:t.exit,
+            'Pips Gained':t.pips,
+            'PnL ($)':t.pl.toFixed(2),
+            Result:t.result,
+            Emotion:t.emotion,
+            Mistake:t.mistake||'',
+            'Setup Quality':t.setupQuality,
+            Score:Math.round(t.score),
+            Grade:t.grade,
+            'Checklist Setup':t.checklist.setup?'Y':'N',
+            'Checklist Entry':t.checklist.entry?'Y':'N',
+            'Checklist SL':t.checklist.sl?'Y':'N',
+            'No Overtrading':t.checklist.overtrade?'Y':'N',
+            'Thoughts / Description': t.thoughts || ''
+        };
+        cf.forEach(f => {
+            baseRow[f.label] = (t.customFields && t.customFields[f.id] !== undefined) ? t.customFields[f.id] : '-';
+        });
+        return baseRow;
+    });
+    const ws=XLSX.utils.json_to_sheet(rows);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Forex_Trades');
+    XLSX.writeFile(wb, title+'.xlsx');
+}
+
 function generatePDF(trades, title){
     const {jsPDF}=window.jspdf;
     const doc=new jsPDF();
@@ -2375,6 +2891,9 @@ async function restoreSession(){
             initApp();
             return true;
         } else {
+            if (response.status === 403) {
+                alert(resData.message || 'Account expired or deactivated.');
+            }
             clearSession();
             document.getElementById('loginScreen').classList.remove('hidden');
             return false;
@@ -2512,6 +3031,462 @@ function applyBroadcastBanner() {
 
 function checkDbWarning() {
     // Disabled warning banner as requested
+}
+
+// ----------------------------------------------------
+// FOREX & SELECTOR DASHBOARD JS LOGIC
+// ----------------------------------------------------
+
+function showJournalSelector() {
+    document.getElementById('journalSelector').style.display = 'block';
+    document.getElementById('indianJournalArea').style.display = 'none';
+    document.getElementById('forexJournalArea').style.display = 'none';
+    
+    // Configure Lock overlay for Forex if not enabled
+    const hasForexAccess = CU && (CU.role === 'admin' || (CU.access && CU.access.forex_journal));
+    const lock = document.getElementById('forexMarketLock');
+    const btn = document.getElementById('forexCardBtn');
+    if (lock) {
+        lock.style.display = hasForexAccess ? 'none' : 'flex';
+    }
+    if (btn) {
+        btn.innerHTML = hasForexAccess ? 'Open Forex Journal' : '🔒 Premium (Locked)';
+        btn.className = hasForexAccess ? 'btn btn-gold btn-sm' : 'btn btn-secondary btn-sm';
+    }
+}
+
+function openIndianJournal() {
+    document.getElementById('journalSelector').style.display = 'none';
+    document.getElementById('indianJournalArea').style.display = 'block';
+    document.getElementById('forexJournalArea').style.display = 'none';
+    renderJournalTable();
+}
+
+function openForexJournal() {
+    const hasForexAccess = CU && (CU.role === 'admin' || (CU.access && CU.access.forex_journal));
+    if (!hasForexAccess) {
+        showPremiumPopup();
+        return;
+    }
+    document.getElementById('journalSelector').style.display = 'none';
+    document.getElementById('indianJournalArea').style.display = 'none';
+    document.getElementById('forexJournalArea').style.display = 'block';
+    renderForexTable();
+}
+
+// Trigger initial selection layout when opening journal
+const originalShowPage = showPage;
+showPage = function(page) {
+    originalShowPage(page);
+    if (page === 'journal') {
+        showJournalSelector();
+    }
+    if (page === 'tradingview_charts') {
+        initTradingViewWidget();
+    }
+};
+
+// FOREX TRADE MODAL DROPDOWNS
+function populateForexDropdowns() {
+    const ss = document.getElementById('fSetup');
+    ss.innerHTML = '<option value="">Select Setup</option>';
+    UD.settings.setups.forEach(s => ss.innerHTML += `<option value="${s}">${s}</option>`);
+    
+    const es = document.getElementById('fEmotion');
+    es.innerHTML = '<option value="">Select Emotion</option>';
+    UD.settings.emotions.forEach(e => es.innerHTML += `<option value="${e}">${e}</option>`);
+    
+    const ms = document.getElementById('fMistake');
+    ms.innerHTML = '<option value="">No Mistake</option>';
+    UD.settings.mistakes.forEach(m => ms.innerHTML += `<option value="${m}">${m}</option>`);
+}
+
+function openForexTradeModal() {
+    editTradeId = null;
+    document.getElementById('forexTradeModalTitle').textContent = 'Add New Forex Trade';
+    document.getElementById('fDate').valueAsDate = new Date();
+    
+    UD.forexTrades = UD.forexTrades || [];
+    document.getElementById('fNumber').value = UD.forexTrades.length + 1;
+    
+    populateForexDropdowns();
+    ['fEntry','fSL','fTarget','fExit','fLotSize'].forEach(id => document.getElementById(id).value = id === 'fLotSize' ? '0.10' : '');
+    document.getElementById('fPair').value = '';
+    document.getElementById('fType').value = 'Buy';
+    document.getElementById('fResult').value = '';
+    document.getElementById('fSetup').value = '';
+    document.getElementById('fQuality').value = '';
+    document.getElementById('fEmotion').value = '';
+    document.getElementById('fMistake').value = '';
+    ['cfSetup','cfEntry','cfSL','cfOver'].forEach(id => document.getElementById(id).checked = false);
+    
+    document.getElementById('fThoughts').value = '';
+    document.getElementById('fThoughtsCount').textContent = '0 / 1000 words';
+    
+    // Clear auto calc
+    document.getElementById('fCalcRR').textContent = '-';
+    document.getElementById('fCalcARR').textContent = '-';
+    document.getElementById('fCalcPips').textContent = '-';
+    document.getElementById('fCalcPL').textContent = '$0.00';
+    document.getElementById('fCalcScore').textContent = '0/100';
+    document.getElementById('fCalcGrade').textContent = '-';
+    
+    populateForexDynamicCustomFields(null);
+    document.getElementById('forexTradeModal').classList.add('active');
+}
+
+function calcForexMetrics() {
+    const pair = document.getElementById('fPair').value;
+    const type = document.getElementById('fType').value;
+    const lotSize = +document.getElementById('fLotSize').value || 0;
+    const entry = +document.getElementById('fEntry').value || 0;
+    const sl = +document.getElementById('fSL').value || 0;
+    const tg = +document.getElementById('fTarget').value || 0;
+    const ex = +document.getElementById('fExit').value || 0;
+    
+    if (entry && sl && tg) {
+        const risk = Math.abs(entry - sl);
+        const reward = Math.abs(tg - entry);
+        const ratio = risk > 0 ? (reward/risk) : 0;
+        document.getElementById('fCalcRR').textContent = '1 : ' + ratio.toFixed(2);
+    }
+    
+    if (entry && sl && ex && lotSize && pair) {
+        const risk = Math.abs(entry - sl);
+        const actualReward = ex - entry;
+        const ratio = risk > 0 ? (actualReward/risk) : 0;
+        if (ratio >= 0) {
+            document.getElementById('fCalcARR').textContent = '1 : ' + ratio.toFixed(2);
+        } else {
+            document.getElementById('fCalcARR').textContent = '-1 : ' + Math.abs(ratio).toFixed(2);
+        }
+        
+        // Pips Calculation
+        const isJpyOrGold = pair.includes('JPY') || pair === 'XAU/USD';
+        const multiplier = isJpyOrGold ? 100 : 10000;
+        
+        let pips = (ex - entry) * multiplier;
+        if (type === 'Sell') {
+            pips = -pips;
+        }
+        
+        document.getElementById('fCalcPips').textContent = pips.toFixed(1) + ' Pips';
+        
+        // P&L calculation in USD ($)
+        const pl = pips * lotSize * 10;
+        document.getElementById('fCalcPL').textContent = '$' + pl.toFixed(2);
+        document.getElementById('fCalcPL').style.color = pl >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+}
+
+function calcForexScore() {
+    const checklistCheckedCount = ['cfSetup','cfEntry','cfSL','cfOver'].filter(id => document.getElementById(id).checked).length;
+    const checklistScore = checklistCheckedCount * 22.5; // Checklist worth 90 points
+    
+    const qMap = { Perfect: 4, Good: 3, Average: 2, 'Bad Setup': 1, 'No Setup/Faltugiri': 0 };
+    const setupQualityScore = qMap[document.getElementById('fQuality').value] || 0;
+    
+    const emotionVal = document.getElementById('fEmotion').value;
+    const emotionScore = (emotionVal === 'Calm' || emotionVal === 'Confident') ? 3 : 1;
+    
+    const mistakeVal = document.getElementById('fMistake').value;
+    const mistakeScore = (!mistakeVal || mistakeVal === 'No Mistake' || mistakeVal === '') ? 3 : 0;
+    
+    const score = checklistScore + setupQualityScore + emotionScore + mistakeScore;
+    document.getElementById('fCalcScore').textContent = Math.round(score) + '/100';
+    
+    let g = 'Needs Work';
+    if (score >= 95) g = '🌟 Legend';
+    else if (score >= 85) g = 'A+';
+    else if (score >= 70) g = 'A';
+    else if (score >= 50) g = 'B';
+    
+    document.getElementById('fCalcGrade').textContent = g;
+    const cMap = { '🌟 Legend': 'var(--gold)', 'A+': 'var(--green)', 'A': 'var(--blue3)', 'B': 'var(--orange)', 'Needs Work': 'var(--red)' };
+    document.getElementById('fCalcGrade').style.color = cMap[g] || 'var(--red)';
+}
+
+function checkForexThoughtsWordCount(el) {
+    const maxWords = 1000;
+    const words = el.value.trim().split(/\s+/).filter(w => w.length > 0);
+    const wordCount = words.length;
+    document.getElementById('fThoughtsCount').textContent = `${wordCount} / ${maxWords} words`;
+    if (wordCount > maxWords) {
+        const truncated = words.slice(0, maxWords).join(' ');
+        el.value = truncated;
+        document.getElementById('fThoughtsCount').textContent = `${maxWords} / ${maxWords} words (Limit Reached)`;
+    }
+}
+
+function populateForexDynamicCustomFields(trade = null) {
+    const container = document.getElementById('forexDynamicCustomFieldsContainer');
+    const fields = CACHED_GLOBAL_CONFIG.customFields || [];
+    if (!fields.length) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    const values = trade && trade.customFields ? trade.customFields : {};
+    
+    container.innerHTML = fields.map(f => {
+        const val = values[f.id] !== undefined ? values[f.id] : '';
+        let inputHTML = '';
+        if (f.type === 'Select') {
+            const options = f.options || [];
+            inputHTML = `<select class="forex-custom-field-input" data-id="${f.id}" style="width:100%">
+                <option value="">Select Option</option>
+                ${options.map(opt => `<option value="${opt}" ${opt === val ? 'selected' : ''}>${opt}</option>`).join('')}
+            </select>`;
+        } else if (f.type === 'Number') {
+            inputHTML = `<input type="number" class="forex-custom-field-input" data-id="${f.id}" value="${val}" step="any" style="width:100%">`;
+        } else {
+            inputHTML = `<input type="text" class="forex-custom-field-input" data-id="${f.id}" value="${val}" style="width:100%">`;
+        }
+        
+        return `<div class="form-group" style="width:100%; margin-bottom:10px"><label>${f.label}</label>${inputHTML}</div>`;
+    }).join('');
+}
+
+// RENDER FOREX JOURNAL TABLE
+function renderForexTable() {
+    const tbody = document.getElementById('forexJournalTable');
+    UD.forexTrades = UD.forexTrades || [];
+    if(!UD.forexTrades.length){ tbody.innerHTML='<tr><td colspan="15"><div class="empty-state"><div class="icon">🌍</div><h3>No Forex journal entries</h3></div></td></tr>'; return; }
+    
+    tbody.innerHTML = [...UD.forexTrades].reverse().map(t => {
+        const starHTML = t.hasStar ? '<span class="gold-star-award"><i class="fas fa-star"></i></span>' : '';
+        return `<tr>
+            <td style="font-weight:700">${t.number}${starHTML}</td>
+            <td>${fmtDate(t.date)}</td>
+            <td style="color:var(--gold); font-weight:700">${t.pair}</td>
+            <td><span class="badge ${t.type==='Buy'?'win':'loss'}">${t.type}</span></td>
+            <td>${t.lotSize}</td>
+            <td>${t.entry}</td>
+            <td>${t.sl}</td>
+            <td>${t.target}</td>
+            <td>${t.exit}</td>
+            <td>${t.pips.toFixed(1)}</td>
+            <td style="color:${t.pl>=0?'var(--green)':'var(--red)'}; font-weight:700">$${t.pl.toFixed(2)}</td>
+            <td><span class="badge ${badgeCls(t.result)}">${t.result}</span></td>
+            <td>${Math.round(t.score)}/100</td>
+            <td><span class="grade ${gradeCls(t.grade)}">${t.grade}</span></td>
+            <td style="display:flex; gap: 4px; justify-content: center">
+                <button class="btn btn-blue btn-sm" onclick="viewForexTradeDetails(${t.id})" style="padding: 6px 10px; font-size: 11px;"><i class="fas fa-eye"></i></button>
+                <button class="btn btn-secondary btn-sm" onclick="editForexTrade(${t.id})" style="padding: 6px 10px; font-size: 11px;"><i class="fas fa-edit"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function filterForexTable(){ 
+    const q = document.getElementById('forexSearch').value.toLowerCase(); 
+    document.querySelectorAll('#forexJournalTable tr').forEach(r => r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none'); 
+}
+
+function editForexTrade(id) {
+    const t = UD.forexTrades.find(x => x.id === id); if(!t) return;
+    editTradeId = id;
+    document.getElementById('forexTradeModalTitle').textContent = 'Edit Forex Trade';
+    populateForexDropdowns();
+    document.getElementById('fDate').value = t.date;
+    document.getElementById('fNumber').value = t.number;
+    document.getElementById('fPair').value = t.pair;
+    document.getElementById('fType').value = t.type;
+    document.getElementById('fLotSize').value = t.lotSize;
+    document.getElementById('fEntry').value = t.entry;
+    document.getElementById('fSL').value = t.sl;
+    document.getElementById('fTarget').value = t.target;
+    document.getElementById('fExit').value = t.exit;
+    document.getElementById('fResult').value = t.result;
+    document.getElementById('fSetup').value = t.setup;
+    document.getElementById('fQuality').value = t.setupQuality;
+    document.getElementById('fEmotion').value = t.emotion;
+    document.getElementById('fMistake').value = t.mistake || '';
+    
+    document.getElementById('cfSetup').checked = t.checklist.setup;
+    document.getElementById('cfEntry').checked = t.checklist.entry;
+    document.getElementById('cfSL').checked = t.checklist.sl;
+    document.getElementById('cfOver').checked = t.checklist.overtrade;
+    
+    document.getElementById('fThoughts').value = t.thoughts || '';
+    checkForexThoughtsWordCount(document.getElementById('fThoughts'));
+    populateForexDynamicCustomFields(t);
+    
+    calcForexMetrics();
+    calcForexScore();
+    document.getElementById('forexTradeModal').classList.add('active');
+}
+
+async function saveForexTrade() {
+    const t={
+        id:editTradeId||Date.now(),
+        date:document.getElementById('fDate').value,
+        number:+document.getElementById('fNumber').value,
+        pair:document.getElementById('fPair').value,
+        type:document.getElementById('fType').value,
+        lotSize:+document.getElementById('fLotSize').value,
+        entry:+document.getElementById('fEntry').value,
+        sl:+document.getElementById('fSL').value,
+        target:+document.getElementById('fTarget').value,
+        exit:+document.getElementById('fExit').value,
+        result:document.getElementById('fResult').value,
+        setup:document.getElementById('fSetup').value,
+        setupQuality:document.getElementById('fQuality').value,
+        emotion:document.getElementById('fEmotion').value,
+        mistake:document.getElementById('fMistake').value,
+        checklist:{setup:document.getElementById('cfSetup').checked,entry:document.getElementById('cfEntry').checked,sl:document.getElementById('cfSL').checked,overtrade:document.getElementById('cfOver').checked},
+        thoughts:document.getElementById('fThoughts').value,
+        customFields: {}
+    };
+    
+    // Collect custom fields
+    document.querySelectorAll('.forex-custom-field-input').forEach(input => {
+        const fieldId = input.getAttribute('data-id');
+        t.customFields[fieldId] = input.value;
+    });
+    
+    if(!t.pair||!t.result||!t.setup||!t.emotion){alert('Please fill all required fields');return;}
+    
+    // Forex Pips and P&L Math
+    const calcs = calcForexPipsAndPL();
+    t.pips = calcs.pips;
+    t.pl = calcs.pl;
+    
+    const risk = Math.abs(t.entry - t.sl);
+    const plannedReward = Math.abs(t.target - t.entry);
+    const actualReward = t.exit - t.entry; // handles Buy/Sell correctly
+    
+    t.plannedRRValue = risk > 0 ? (plannedReward / risk) : 0;
+    t.actualRRValue = risk > 0 ? (actualReward / risk) : 0;
+    t.plannedRR = risk > 0 ? `1 : ${t.plannedRRValue.toFixed(2)}` : '1 : 0';
+    if (t.actualRRValue >= 0) {
+        t.actualRR = risk > 0 ? `1 : ${t.actualRRValue.toFixed(2)}` : '1 : 0';
+    } else {
+        t.actualRR = risk > 0 ? `-1 : ${Math.abs(t.actualRRValue).toFixed(2)}` : '-1 : 0';
+    }
+    
+    t.hasStar = (t.actualRRValue >= 6.00);
+    
+    // Checklist Calculations
+    const checklistScore = Object.values(t.checklist).filter(v=>v).length * 22.5;
+    const qMap = { Perfect: 4, Good: 3, Average: 2, 'Bad Setup': 1, 'No Setup/Faltugiri': 0 };
+    const setupQualityScore = qMap[t.setupQuality] || 0;
+    const emotionScore = (t.emotion === 'Calm' || t.emotion === 'Confident') ? 3 : 1;
+    const mistakeScore = (!t.mistake || t.mistake === 'No Mistake' || t.mistake === '') ? 3 : 0;
+    
+    t.score = checklistScore + setupQualityScore + emotionScore + mistakeScore;
+    
+    if (t.score >= 95) {
+        t.grade = '🌟 Legend';
+        t.gradeText = 'Outstanding trade execution!';
+    } else if (t.score >= 85) {
+        t.grade = 'A+';
+        t.gradeText = 'Excellent discipline and setup selection';
+    } else if (t.score >= 70) {
+        t.grade = 'A';
+        t.gradeText = 'Good trade, minor corrections possible';
+    } else if (t.score >= 50) {
+        t.grade = 'B';
+        t.gradeText = 'Discipline kept but can improve setup/emotions';
+    } else {
+        t.grade = 'Needs Work';
+        t.gradeText = 'Keep your chin up! Every mistake is a lesson to make you a better trader.';
+    }
+
+    UD.forexTrades = UD.forexTrades || [];
+    if(editTradeId){
+        const idx=UD.forexTrades.findIndex(x=>x.id===editTradeId);
+        UD.forexTrades[idx]=t;
+    } else {
+        UD.forexTrades.push(t);
+    }
+    
+    saveUD(CU.username,UD);
+    closeModal('forexTradeModal');
+    renderForexTable();
+}
+
+function viewForexTradeDetails(id) {
+    const t = UD.forexTrades.find(x => x.id === id);
+    if (!t) return;
+    
+    const container = document.getElementById('viewTradeDetailsBody');
+    const fields = CACHED_GLOBAL_CONFIG.customFields || [];
+    
+    // Render custom fields
+    let customFieldsHTML = '';
+    if (fields.length) {
+        customFieldsHTML = `
+            <div style="margin-top: 10px">
+                <h4 style="color: var(--gold); border-bottom: 2px solid var(--border); padding-bottom: 5px; margin-bottom: 10px; font-weight: 800; font-size: 14px">📋 Dynamic Custom Fields</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px">
+                    ${fields.map(f => {
+                        const val = t.customFields && t.customFields[f.id] !== undefined ? t.customFields[f.id] : '-';
+                        return `<div style="background: var(--card2); border: 2px solid var(--border); padding: 10px; border-radius: 10px">
+                            <div style="font-size: 10px; color: var(--text2); text-transform: uppercase; font-weight:700">${f.label}</div>
+                            <div style="font-size: 13px; font-weight: 700; color: var(--gold); margin-top: 4px">${val}</div>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    const thoughtsText = t.thoughts && t.thoughts.trim().length > 0 ? t.thoughts : 'No thoughts described.';
+    
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; background: var(--bg); padding: 15px; border-radius: 12px; border: 2px solid var(--border)">
+            <div><span style="color: var(--text2); font-size:11px">Trade #:</span> <strong style="font-size:14px; margin-left:5px">${t.number}</strong></div>
+            <div><span style="color: var(--text2); font-size:11px">Date:</span> <strong style="font-size:14px; margin-left:5px">${fmtDate(t.date)}</strong></div>
+            <div><span style="color: var(--text2); font-size:11px">Pair / Asset:</span> <strong style="font-size:14px; margin-left:5px; color:var(--gold)">${t.pair} (${t.type})</strong></div>
+            <div><span style="color: var(--text2); font-size:11px">Result:</span> <span class="badge ${badgeCls(t.result)}" style="margin-left:5px">${t.result}</span></div>
+            <div><span style="color: var(--text2); font-size:11px">Pips Gained:</span> <strong style="font-size:14px; margin-left:5px">${t.pips.toFixed(1)} Pips</strong></div>
+            <div><span style="color: var(--text2); font-size:11px">P&L ($):</span> <strong style="color: ${t.pl >= 0 ? 'var(--green)' : 'var(--red)'}; font-size:14px; margin-left:5px">$${t.pl.toFixed(2)}</strong></div>
+            <div><span style="color: var(--text2); font-size:11px">Score:</span> <strong style="font-size:14px; margin-left:5px">${Math.round(t.score)}/100</strong></div>
+            <div><span style="color: var(--text2); font-size:11px">Grade:</span> <span class="grade ${gradeCls(t.grade)}" style="margin-left:5px">${t.grade}</span></div>
+        </div>
+        <div style="margin-top: 10px">
+            <h4 style="color: var(--gold); border-bottom: 2px solid var(--border); padding-bottom: 5px; margin-bottom: 10px; font-weight: 800; font-size: 14px">💭 Thoughts & Checklist Description</h4>
+            <div style="background: var(--card3); padding: 15px; border-radius: 10px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; color: var(--text); border: 1px dashed var(--border)">${thoughtsText}</div>
+        </div>
+        ${customFieldsHTML}
+    `;
+    
+    document.getElementById('viewTradeDetailsModal').classList.add('active');
+}
+
+// ----------------------------------------------------
+// TRADINGVIEW LIVE CHARTS INTEGRATION (PREMIUM)
+// ----------------------------------------------------
+function initTradingViewWidget(symbol = 'FX:EURUSD') {
+    // Dynamically inject TradingView library if not loaded
+    if (typeof TradingView === 'undefined') {
+        const script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = 'https://s3.tradingview.com/tv.js';
+        script.onload = () => {
+            renderWidget(symbol);
+        };
+        document.head.appendChild(script);
+    } else {
+        renderWidget(symbol);
+    }
+}
+
+function renderWidget(symbol) {
+    new TradingView.widget({
+        "width": "100%",
+        "height": "100%",
+        "symbol": symbol,
+        "interval": "D",
+        "timezone": "Etc/UTC",
+        "theme": "dark",
+        "style": "1",
+        "locale": "en",
+        "enable_publishing": false,
+        "allow_symbol_change": true,
+        "container_id": "tradingview_chart"
+    });
 }
 
 // 5. RENDER PUBLIC NEWS FEED
@@ -2862,6 +3837,98 @@ document.addEventListener('DOMContentLoaded', async function(){
             </div>
         </div>
         <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('newsModal')">Cancel</button><button class="btn btn-gold" onclick="saveNewsPost()">Publish</button></div>
+    </div>
+</div>
+
+<!-- Forex Trade Modal -->
+<div class="modal" id="forexTradeModal">
+    <div class="modal-box" style="max-width: 650px">
+        <div class="modal-header"><div class="modal-title" id="forexTradeModalTitle">Add New Forex Trade</div><button class="close-btn" onclick="closeModal('forexTradeModal')"><i class="fas fa-times"></i></button></div>
+        <div class="modal-body" style="max-height: calc(100vh - 200px); overflow-y: auto;">
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 15px">
+                <div class="form-group"><label>Date</label><input type="date" id="fDate" required></div>
+                <div class="form-group"><label>Trade #</label><input type="number" id="fNumber" readonly></div>
+                <div class="form-group"><label>Currency Pair / Gold</label>
+                    <select id="fPair" required onchange="calcForexMetrics()">
+                        <option value="">Select Pair</option>
+                        <option>EUR/USD</option>
+                        <option>GBP/USD</option>
+                        <option>USD/JPY</option>
+                        <option>AUD/USD</option>
+                        <option>USD/CAD</option>
+                        <option>GBP/JPY</option>
+                        <option>EUR/GBP</option>
+                        <option>XAU/USD</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Order Type</label>
+                    <select id="fType" required onchange="calcForexMetrics()">
+                        <option>Buy</option>
+                        <option>Sell</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Lot Size</label><input type="number" id="fLotSize" value="0.10" step="0.01" required oninput="calcForexMetrics()"></div>
+                <div class="form-group"><label>Entry Price</label><input type="number" id="fEntry" step="0.00001" required oninput="calcForexMetrics()"></div>
+                <div class="form-group"><label>Stop Loss Price</label><input type="number" id="fSL" step="0.00001" required oninput="calcForexMetrics()"></div>
+                <div class="form-group"><label>Target Price</label><input type="number" id="fTarget" step="0.00001" required oninput="calcForexMetrics()"></div>
+                <div class="form-group" style="grid-column: span 2"><label>Exit Price</label><input type="number" id="fExit" step="0.00001" required oninput="calcForexMetrics()"></div>
+                <div class="form-group"><label>Result</label>
+                    <select id="fResult" required>
+                        <option value="">Select</option>
+                        <option>Win</option>
+                        <option>Loss</option>
+                        <option>Break-even</option>
+                        <option>No Trading</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Setup Type</label><select id="fSetup" required><option value="">Select Setup</option></select></div>
+                <div class="form-group"><label>Setup Quality</label>
+                    <select id="fQuality" onchange="calcForexScore()">
+                        <option value="">Rate Setup</option>
+                        <option>Perfect</option>
+                        <option>Good</option>
+                        <option>Average</option>
+                        <option>Bad Setup</option>
+                        <option>No Setup/Faltugiri</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Emotion</label><select id="fEmotion" required><option value="">Select</option></select></div>
+                <div class="form-group" style="grid-column: span 2"><label>Mistake</label><select id="fMistake"><option value="">No Mistake</option></select></div>
+            </div>
+            
+            <div class="form-group full" style="margin-top:18px">
+                <label>Trading Checklist</label>
+                <div class="checkbox-grid">
+                    <div class="checkbox-item"><input type="checkbox" id="cfSetup" onchange="calcForexScore()"><label for="cfSetup">Setup valid & confirmed</label></div>
+                    <div class="checkbox-item"><input type="checkbox" id="cfEntry" onchange="calcForexScore()"><label for="cfEntry">Entry rule followed</label></div>
+                    <div class="checkbox-item"><input type="checkbox" id="cfSL" onchange="calcForexScore()"><label for="cfSL">Stop Loss respected</label></div>
+                    <div class="checkbox-item"><input type="checkbox" id="cfOver" onchange="calcForexScore()"><label for="cfOver">No overtrading</label></div>
+                </div>
+            </div>
+            
+            <!-- Thoughts / Description -->
+            <div class="form-group full" style="margin-top:18px">
+                <label>Thoughts / Description (Max 1000 words)</label>
+                <textarea id="fThoughts" rows="4" placeholder="Describe your thoughts, trading context, or mental state before/after this trade..." oninput="checkForexThoughtsWordCount(this)"></textarea>
+                <div id="fThoughtsCount" class="word-count-hint">0 / 1000 words</div>
+            </div>
+
+            <!-- Dynamic Custom Fields Container -->
+            <div id="forexDynamicCustomFieldsContainer" class="form-grid" style="margin-top:18px; width:100%"></div>
+
+            <div class="auto-calc-box" style="margin-top:18px">
+                <div class="auto-calc-title">📊 Auto Calculations (USD $)</div>
+                <div class="auto-calc-grid">
+                    <div class="auto-calc-item"><div class="lbl">Planned RR</div><div class="val" id="fCalcRR">-</div></div>
+                    <div class="auto-calc-item"><div class="lbl">Actual RR</div><div class="val" id="fCalcARR">-</div></div>
+                    <div class="auto-calc-item"><div class="lbl">Total Pips</div><div class="val" id="fCalcPips">-</div></div>
+                    <div class="auto-calc-item"><div class="lbl">P&amp;L ($)</div><div class="val" id="fCalcPL">$0.00</div></div>
+                    <div class="auto-calc-item"><div class="lbl">Score</div><div class="val" id="fCalcScore">0/100</div></div>
+                    <div class="auto-calc-item"><div class="lbl">Grade</div><div class="val" id="fCalcGrade">-</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('forexTradeModal')">Cancel</button><button class="btn btn-gold" onclick="saveForexTrade()">Save Trade</button></div>
     </div>
 </div>
 

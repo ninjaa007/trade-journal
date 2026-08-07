@@ -106,6 +106,35 @@ app.use(async (req, res, next) => {
     next();
 });
 
+// Helper to check user validity (Returns descriptive error if deactivated/expired, null if OK!)
+function checkUserValidity(user) {
+    if (!user) return null;
+    if (user.username === 'admin') return null; // Admin never deactivates or expires!
+    
+    if (user.status === 'deactivated') {
+        return "❌ This account has been deactivated by the Administrator. Please contact your admin for support.";
+    }
+    
+    const prof = user.profile || {};
+    if (prof.apply_validity) {
+        const now = new Date();
+        now.setHours(0,0,0,0);
+        const from = prof.valid_from ? new Date(prof.valid_from) : null;
+        const to = prof.valid_to ? new Date(prof.valid_to) : null;
+        
+        if (from) from.setHours(0,0,0,0);
+        if (to) to.setHours(0,0,0,0);
+        
+        if (from && now < from) {
+            return `❌ Your account access period has not started yet. Your validity starts on ${from.toLocaleDateString('en-IN')}.`;
+        }
+        if (to && now > to) {
+            return `❌ Your account access has expired! Your validity ended on ${to.toLocaleDateString('en-IN')}. Please contact your Administrator to renew your access.`;
+        }
+    }
+    return null;
+}
+
 // ----------------------------------------------------
 // DATABASE INITIALIZERS
 // ----------------------------------------------------
@@ -401,6 +430,12 @@ app.post('/api/auth/login', async (req, res) => {
                 return res.status(401).json({ success: false, message: 'Invalid username or password.' });
             }
             user = userRes.rows[0];
+            
+            // Validate user validity and status
+            const expiryMsg = checkUserValidity(user);
+            if (expiryMsg) {
+                return res.status(403).json({ success: false, message: expiryMsg });
+            }
 
             // Load user data
             const uDataRes = await pgClient.query('SELECT * FROM user_datas WHERE username = $1', [user.username]);
@@ -470,6 +505,12 @@ app.post('/api/auth/login', async (req, res) => {
             if (!user || user.password !== password) {
                 return res.status(401).json({ success: false, message: 'Invalid username or password.' });
             }
+            
+            // Validate user validity and status
+            const expiryMsg = checkUserValidity(user);
+            if (expiryMsg) {
+                return res.status(403).json({ success: false, message: expiryMsg });
+            }
 
             let uData = await UserData.findOne({ username: user.username });
             if (!uData) {
@@ -521,6 +562,12 @@ app.post('/api/auth/login', async (req, res) => {
             user = db.users.find(u => u.username.toLowerCase() === lowerUser);
             if (!user || user.password !== password) {
                 return res.status(401).json({ success: false, message: 'Invalid username or password.' });
+            }
+            
+            // Validate user validity and status
+            const expiryMsg = checkUserValidity(user);
+            if (expiryMsg) {
+                return res.status(403).json({ success: false, message: expiryMsg });
             }
 
             if (!db.userDatas[user.username]) {
@@ -615,6 +662,12 @@ app.post('/api/auth/session', async (req, res) => {
                 return res.status(404).json({ success: false, message: 'Session user account not found.' });
             }
             user = userRes.rows[0];
+            
+            // Validate user validity and status
+            const expiryMsg = checkUserValidity(user);
+            if (expiryMsg) {
+                return res.status(403).json({ success: false, message: expiryMsg });
+            }
 
             const uDataRes = await pgClient.query('SELECT * FROM user_datas WHERE username = $1', [user.username]);
             if (uDataRes.rows.length === 0) {
@@ -682,6 +735,12 @@ app.post('/api/auth/session', async (req, res) => {
             if (!user) {
                 return res.status(404).json({ success: false, message: 'Session user account not found.' });
             }
+            
+            // Validate user validity and status
+            const expiryMsg = checkUserValidity(user);
+            if (expiryMsg) {
+                return res.status(403).json({ success: false, message: expiryMsg });
+            }
 
             let uData = await UserData.findOne({ username: user.username });
             if (!uData) {
@@ -732,6 +791,12 @@ app.post('/api/auth/session', async (req, res) => {
             user = db.users.find(u => u.username.toLowerCase() === normalizedUsername);
             if (!user) {
                 return res.status(404).json({ success: false, message: 'Session user account not found.' });
+            }
+            
+            // Validate user validity and status
+            const expiryMsg = checkUserValidity(user);
+            if (expiryMsg) {
+                return res.status(403).json({ success: false, message: expiryMsg });
             }
 
             if (!db.userDatas[user.username]) {

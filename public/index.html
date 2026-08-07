@@ -1595,8 +1595,8 @@ function renderSnapchatStreaks() {
     const badge = document.getElementById('snapchatStreakBadge');
     if (!badge) return;
     
-    // Filter out No Trading results for streaks
-    const trades = [...UD.trades].filter(t => t.result !== 'No Trading').sort((a,b) => new Date(a.date) - new Date(b.date));
+    const allTrades = UD && UD.trades ? UD.trades : [];
+    const trades = [...allTrades].filter(t => t.result !== 'No Trading').sort((a,b) => new Date(a.date) - new Date(b.date));
     if (!trades.length) {
         badge.style.display = 'none';
         return;
@@ -1615,7 +1615,7 @@ function renderSnapchatStreaks() {
         if (trades[i].result === streakType) {
             count++;
         } else if (trades[i].result === 'Break-even' || trades[i].result === 'No Trading') {
-            continue; // Ignore break evens and no tradings inside streaks
+            continue; // Skip BE and NT
         } else {
             break;
         }
@@ -1638,7 +1638,7 @@ function renderSnapchatStreaks() {
 }
 
 function refreshDashboard(){
-    const trades=UD.trades;
+    const trades = UD && UD.trades ? UD.trades : [];
     const realTrades=trades.filter(t=>t.result!=='No Trading');
     const totalPL=realTrades.reduce((s,t)=>s+t.pl,0);
     const wins=realTrades.filter(t=>t.result==='Win').length;
@@ -1650,9 +1650,9 @@ function refreshDashboard(){
     const totalChecks=trades.reduce((s,t)=>s+Object.values(t.checklist||{}).filter(v=>v).length,0);
     const discipline=trades.length?((totalChecks/(trades.length*4))*100).toFixed(1):0;
     
-    // Exclude 'No Trading' trades when calculating average consistency score!
-    const scoredTrades = trades.filter(t => t.score !== null && t.score !== undefined);
-    const avgScore=scoredTrades.length?(scoredTrades.reduce((s,t)=>s+t.score,0)/scoredTrades.length):0;
+    // Exclude 'No Trading' and handle undefined score values robustly to prevent NaN crashes!
+    const scoredTrades = trades.filter(t => t.score !== null && t.score !== undefined && !isNaN(t.score));
+    const avgScore=scoredTrades.length?(scoredTrades.reduce((s,t)=>s+Number(t.score),0)/scoredTrades.length):0;
     
     let rating='-';
     if(avgScore>=95)rating='🌟 Legend';

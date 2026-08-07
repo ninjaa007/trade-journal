@@ -508,8 +508,15 @@
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
-        <div class="page-header">
-            <div><h1>Performance Dashboard</h1><p>Track your trading performance in real-time</p></div>
+        <div class="page-header" style="align-items: center">
+            <div>
+                <h1 style="display: flex; align-items: center; gap: 10px; flex-wrap:wrap">
+                    Performance Dashboard
+                    <!-- Snapchat-style Streak Badge -->
+                    <div id="snapchatStreakBadge" style="display:none; align-items:center; gap:6px; background:var(--card); border: 2px solid var(--border); padding: 4px 14px; border-radius: 20px; font-weight:800; font-size:13px; color:var(--text)"></div>
+                </h1>
+                <p>Track your trading performance in real-time</p>
+            </div>
             <div class="page-header-actions">
                 <button class="btn btn-secondary" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
                 <button class="btn btn-secondary" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Excel</button>
@@ -518,20 +525,15 @@
         </div>
         <div class="stats-grid" id="dashTopStats"></div>
         <div class="stats-grid" id="dashSubStats"></div>
-        <!-- Streak -->
-        <div class="chart-card" style="margin-bottom:25px">
-            <div class="chart-header"><div class="chart-title">🔥 Win / Loss Streak Analysis</div></div>
-            <div class="streak-container" id="streakContainer">
-                <div class="empty-state"><div class="icon">📊</div><p>No streak data yet</p></div>
-            </div>
-        </div>
-        <div class="charts-grid" id="dashCharts">
-            <div class="chart-card"><div class="chart-header"><div class="chart-title">📈 Daily P&amp;L</div></div><div class="chart-container"><canvas id="cDaily"></canvas></div></div>
+        
+        <!-- Upgraded Compact Charts Layout -->
+        <div class="charts-grid" id="dashCharts" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))">
             <div class="chart-card"><div class="chart-header"><div class="chart-title">😊 Emotion Distribution</div></div><div class="chart-container"><canvas id="cEmotion"></canvas></div></div>
             <div class="chart-card"><div class="chart-header"><div class="chart-title">🎯 Setup Win Rate</div></div><div class="chart-container"><canvas id="cSetup"></canvas></div></div>
-            <div class="chart-card"><div class="chart-header"><div class="chart-title">💰 Cumulative P&amp;L</div></div><div class="chart-container"><canvas id="cCumulative"></canvas></div></div>
+            <div class="chart-card"><div class="chart-header"><div class="chart-title">📈 Equity Curve</div></div><div class="chart-container"><canvas id="cCumulative"></canvas></div></div>
         </div>
-        <div class="table-card">
+        
+        <div class="table-card" style="margin-top: 25px">
             <div class="table-header">
                 <div class="chart-title">Recent Trades</div>
                 <div class="search-box"><i class="fas fa-search"></i><input type="text" placeholder="Search..." id="dashSearch" oninput="filterDashTable()"></div>
@@ -552,8 +554,22 @@
             <div class="market-selector-grid">
                 <!-- Indian Market Card -->
                 <div class="market-card" onclick="openIndianJournal()">
-                    <div class="market-logo" style="background: linear-gradient(135deg, #FF9933, #FFFFFF, #138808); font-size:32px">🇮🇳</div>
-                    <h3 class="market-title">Indian Market Journal</h3>
+                    <div class="market-logo" style="width: 80px; height: 80px; padding: 0; overflow: hidden; display: flex; flex-direction: column; border-radius: 50%; border: 3px solid var(--border); box-shadow: 0 8px 20px rgba(0,0,0,0.4)">
+                        <div style="background: #FF9933; flex: 1; width: 100%"></div>
+                        <div style="background: #FFFFFF; flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; position: relative">
+                            <!-- Ashoka Chakra (spinning!) -->
+                            <div style="border: 2px solid #000080; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;">
+                                <div style="background: #000080; width: 3px; height: 3px; border-radius: 50%"></div>
+                                <div style="position: absolute; width: 16px; height: 1px; background: #000080; transform: rotate(30deg)"></div>
+                                <div style="position: absolute; width: 16px; height: 1px; background: #000080; transform: rotate(60deg)"></div>
+                                <div style="position: absolute; width: 16px; height: 1px; background: #000080; transform: rotate(90deg)"></div>
+                                <div style="position: absolute; width: 16px; height: 1px; background: #000080; transform: rotate(120deg)"></div>
+                                <div style="position: absolute; width: 16px; height: 1px; background: #000080; transform: rotate(150deg)"></div>
+                            </div>
+                        </div>
+                        <div style="background: #138808; flex: 1; width: 100%"></div>
+                    </div>
+                    <h3 class="market-title" style="margin-top:10px">Indian Market Journal</h3>
                     <p class="market-desc">Track, analyze, and compound your NSE/BSE Equity, Futures, & Options trades with automatic score calculation.</p>
                     <button class="btn btn-gold btn-sm" style="margin-top:10px">Open Indian Journal</button>
                 </div>
@@ -634,6 +650,75 @@
         <div class="gurukul-grid" id="gurukulGrid"></div>
     </div>
 
+    <!-- SMART RISK PLANNER -->
+    <div class="page" id="page-risk_planner">
+        <div class="page-header">
+            <div><h1>🧮 Smart Risk Planner</h1><p>Risk-based position sizing calculator for Indian & Forex Markets</p></div>
+        </div>
+        
+        <div class="tab-bar" id="riskTabBar" style="margin-bottom: 20px">
+            <div class="tab-btn active" onclick="showRiskTab(this,'riskIndian')">🇮🇳 Indian Market Calculator</div>
+            <div class="tab-btn" onclick="showRiskTab(this,'riskForex')">🌍 Forex Market Calculator</div>
+        </div>
+        
+        <!-- Indian Risk Calculator -->
+        <div id="riskIndian" class="risk-tab">
+            <div class="table-card" style="max-width:600px">
+                <h3 style="margin-bottom:15px; color:var(--gold)"><i class="fas fa-flag" style="margin-right:6px"></i> Indian Share Position Sizer</h3>
+                <div class="form-group"><label>Stock / Index Name</label><input type="text" id="irStock" placeholder="e.g. Reliance, Nifty F&O"></div>
+                <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:15px">
+                    <div class="form-group"><label>Entry Price (₹)</label><input type="number" id="irEntry" step="0.01" placeholder="0.00" oninput="calcIndianRisk()"></div>
+                    <div class="form-group"><label>Stop Loss (₹)</label><input type="number" id="irSL" step="0.01" placeholder="0.00" oninput="calcIndianRisk()"></div>
+                </div>
+                <div class="form-group"><label>Maximum Loss Amount (₹)</label><input type="number" id="irMaxLoss" placeholder="e.g. 1000" oninput="calcIndianRisk()"></div>
+                
+                <!-- Calculations display -->
+                <div class="auto-calc-box" style="margin-top:20px">
+                    <div class="auto-calc-title">📊 Indian Risk Summary</div>
+                    <div class="auto-calc-grid" style="grid-template-columns:1fr 1fr">
+                        <div class="auto-calc-item"><div class="lbl">SL Distance (Points)</div><div class="val" id="irCalcSL">₹0.00</div></div>
+                        <div class="auto-calc-item" style="border: 2px solid var(--gold); border-radius:10px; padding: 10px"><div class="lbl" style="color:var(--gold)">Recommended Quantity</div><div class="val" id="irCalcQty" style="color:var(--gold); font-size:20px; font-weight:900">-</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Forex Risk Calculator -->
+        <div id="riskForex" class="risk-tab" style="display:none">
+            <div class="table-card" style="max-width:600px">
+                <h3 style="margin-bottom:15px; color:var(--gold)"><i class="fas fa-globe-americas" style="margin-right:6px"></i> Forex Lot Size Sizer</h3>
+                <div class="form-group">
+                    <label>Currency Pair / Gold</label>
+                    <select id="frPair" style="width:100%" onchange="calcForexRisk()">
+                        <option>EUR/USD</option>
+                        <option>GBP/USD</option>
+                        <option>USD/JPY</option>
+                        <option>AUD/USD</option>
+                        <option>USD/CAD</option>
+                        <option>GBP/JPY</option>
+                        <option>EUR/GBP</option>
+                        <option>XAU/USD</option>
+                    </select>
+                </div>
+                <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:15px">
+                    <div class="form-group"><label>Entry Price</label><input type="number" id="frEntry" step="0.00001" placeholder="0.00000" oninput="calcForexRisk()"></div>
+                    <div class="form-group"><label>Stop Loss</label><input type="number" id="frSL" step="0.00001" placeholder="0.00000" oninput="calcForexRisk()"></div>
+                </div>
+                <div class="form-group"><label>Maximum Loss Amount ($ USD)</label><input type="number" id="frMaxLoss" placeholder="e.g. 50" oninput="calcForexRisk()"></div>
+                
+                <!-- Calculations display -->
+                <div class="auto-calc-box" style="margin-top:20px">
+                    <div class="auto-calc-title">📊 Forex Risk Summary</div>
+                    <div class="auto-calc-grid" style="grid-template-columns:1fr 1fr 1fr">
+                        <div class="auto-calc-item"><div class="lbl">SL Distance</div><div class="val" id="frCalcPips">0.0 Pips</div></div>
+                        <div class="auto-calc-item"><div class="lbl">Risk @ 0.01 Lots</div><div class="val" id="frCalcRisk01">$0.00</div></div>
+                        <div class="auto-calc-item" style="border: 2px solid var(--gold); border-radius:10px; padding: 10px"><div class="lbl" style="color:var(--gold)">Recommended Lots</div><div class="val" id="frCalcLots" style="color:var(--gold); font-size:20px; font-weight:900">-</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- REPORTS -->
     <div class="page" id="page-reports">
         <div class="page-header">
@@ -657,7 +742,7 @@
             <div class="stats-grid" id="reportStats"></div>
             <div class="table-card">
                 <h3 style="margin-bottom:15px">Indian Market - Complete Trade Log</h3>
-                <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Setup</th><th>Entry</th><th>SL</th><th>Target</th><th>Exit</th><th>P&amp;L</th><th>Result</th><th>Emotion</th><th>Mistake</th><th>Score</th><th>Grade</th></tr></thead><tbody id="reportTable"></tbody></table></div>
+                <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Setup</th><th>Entry</th><th>SL</th><th>Target</th><th>Exit</th><th>P&amp;L</th><th>Result</th><th>Emotion</th><th>Mistake</th><th>Score</th><th>Grade</th><th>Actions</th></tr></thead><tbody id="reportTable"></tbody></table></div>
             </div>
         </div>
         
@@ -673,7 +758,7 @@
             <div class="stats-grid" id="forexReportStats"></div>
             <div class="table-card">
                 <h3 style="margin-bottom:15px">Forex Market - Complete Trade Log</h3>
-                <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Pair</th><th>Type</th><th>Lot Size</th><th>Entry</th><th>SL</th><th>Target</th><th>Exit</th><th>Pips</th><th>P&amp;L ($)</th><th>Result</th><th>Score</th><th>Grade</th></tr></thead><tbody id="forexReportTable"></tbody></table></div>
+                <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Pair</th><th>Type</th><th>Lot Size</th><th>Entry</th><th>SL</th><th>Target</th><th>Exit</th><th>Pips</th><th>P&amp;L ($)</th><th>Result</th><th>Score</th><th>Grade</th><th>Actions</th></tr></thead><tbody id="forexReportTable"></tbody></table></div>
             </div>
         </div>
     </div>
@@ -695,9 +780,11 @@
         </div>
         <div id="setMaster" class="settings-tab">
             <div class="table-card">
-                <div class="form-group"><label>Setup List (comma separated)</label><textarea id="setupList" rows="3" placeholder="Breakout, Support/Resistance, Trendline..."></textarea></div>
+                <div class="form-group"><label>Indian Market Setup List (comma separated)</label><textarea id="setupList" rows="3" placeholder="Breakout, Support/Resistance, Trendline..."></textarea></div>
+                <div class="form-group"><label>Forex Market Setup List (comma separated)</label><textarea id="forexSetupList" rows="3" placeholder="Double Top, Head and Shoulders, MACD Divergence..."></textarea></div>
                 <div class="form-group"><label>Emotion List (comma separated)</label><textarea id="emotionList" rows="3" placeholder="Calm, Confident, Fear, FOMO..."></textarea></div>
                 <div class="form-group"><label>Mistakes List (comma separated)</label><textarea id="mistakeList" rows="3" placeholder="Overtrading, Early Exit, Moved SL..."></textarea></div>
+                <div class="form-group"><label>What I Learnt Today? List (comma separated)</label><textarea id="learnList" rows="3" placeholder="Manage Risk, Don't Overtrade, Cut Losses Early..."></textarea></div>
             </div>
         </div>
         <div id="setSetups" class="settings-tab" style="display:none">
@@ -949,6 +1036,17 @@
                 <div class="form-group"><label>Result</label><select id="tResult" required><option value="">Select</option><option>Win</option><option>Loss</option><option>Break-even</option><option>No Trading</option></select></div>
                 <div class="form-group"><label>Emotion</label><select id="tEmotion" required><option value="">Select</option></select></div>
                 <div class="form-group"><label>Mistake</label><select id="tMistake"><option value="">No Mistake</option></select></div>
+                <div class="form-group" style="grid-column: span 2"><label>What I Learnt Today?</label><select id="tLearn"><option value="">Select Lesson</option></select></div>
+                
+                <!-- Trade Image/Screenshot attachment -->
+                <div class="form-group" style="grid-column: span 2; background: var(--card3); border: 1px dashed var(--border); padding: 15px; border-radius: 12px; margin-top: 10px; width:100%">
+                    <label style="color: var(--gold); font-weight: 700; margin-bottom:6px"><i class="fas fa-image" style="margin-right:6px"></i> Attach Trade Chart / Screenshot</label>
+                    <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:10px; margin-top: 5px; width:100%">
+                        <div class="form-group" style="margin-bottom:0"><label style="font-size:10px">Upload File</label><input type="file" id="tImageUpload" accept="image/*" onchange="handleTradeImageUpload(event, 't')" style="width:100%"></div>
+                        <div class="form-group" style="margin-bottom:0"><label style="font-size:10px">Or Paste Image Link</label><input type="text" id="tImageUrl" placeholder="https://..." oninput="handleTradeImageUrlInput('t')" style="width:100%"></div>
+                    </div>
+                    <div id="tImagePreview" style="display:none; margin-top:10px; position:relative; width:100%; height:120px; border-radius:8px; overflow:hidden; border:2px solid var(--border)"></div>
+                </div>
             </div>
             <div class="form-group full" style="margin-top:18px">
                 <label>Trading Checklist</label>
@@ -1041,6 +1139,14 @@
         <div class="modal-header"><div class="modal-title" id="setupModalTitle">Add Setup</div><button class="close-btn" onclick="closeModal('setupModal')"><i class="fas fa-times"></i></button></div>
         <div class="modal-body">
             <div class="form-group"><label>Setup Name *</label><input type="text" id="suName" placeholder="e.g. Breakout above resistance" required></div>
+            <div class="form-group" style="margin-bottom:15px">
+                <label>Market Type</label>
+                <select id="suMarket" style="width:100%">
+                    <option value="indian">🇮🇳 Indian Market</option>
+                    <option value="forex">🌍 Forex Market</option>
+                    <option value="both">Both Markets</option>
+                </select>
+            </div>
             <div class="form-group"><label>Description (any language)</label><textarea id="suDesc" rows="4" placeholder="Describe your setup in any language..."></textarea></div>
             <div class="form-group"><label>Setup Screenshots</label><input type="file" id="suImage" accept="image/*" multiple></div>
             <div id="suPreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>
@@ -1128,7 +1234,8 @@ const API_BASE = (window.location.protocol === 'file:' || window.location.hostna
 const LOCKABLE = [
     { key:'compounding', label:'Compounding Engine', icon:'fa-rocket' },
     { key:'gurukul', label:'Gurukul (Knowledge)', icon:'fa-book-open' },
-    { key:'tradingview_charts', label:'Live Charts', icon:'fa-chart-area' }
+    { key:'tradingview_charts', label:'Live Charts', icon:'fa-chart-area' },
+    { key:'risk_planner', label:'Smart Risk Planner', icon:'fa-calculator' }
 ];
 const DEFAULT_PAGES = ['dashboard','journal','analytics','reports','settings'];
 
@@ -1469,6 +1576,52 @@ function closeModal(id){ document.getElementById(id).classList.remove('active');
 /* ============================================================
    DASHBOARD
    ============================================================ */
+function renderSnapchatStreaks() {
+    const badge = document.getElementById('snapchatStreakBadge');
+    if (!badge) return;
+    
+    // Filter out No Trading results for streaks
+    const trades = [...UD.trades].filter(t => t.result !== 'No Trading').sort((a,b) => new Date(a.date) - new Date(b.date));
+    if (!trades.length) {
+        badge.style.display = 'none';
+        return;
+    }
+    
+    const lastTrade = trades[trades.length - 1];
+    const streakType = lastTrade.result;
+    
+    if (streakType !== 'Win' && streakType !== 'Loss') {
+        badge.style.display = 'none';
+        return;
+    }
+    
+    let count = 0;
+    for (let i = trades.length - 1; i >= 0; i--) {
+        if (trades[i].result === streakType) {
+            count++;
+        } else if (trades[i].result === 'Break-even' || trades[i].result === 'No Trading') {
+            continue; // Ignore break evens and no tradings inside streaks
+        } else {
+            break;
+        }
+    }
+    
+    if (count > 0) {
+        if (streakType === 'Win') {
+            badge.innerHTML = `<span style="font-size: 16px; margin-right:4px">🔥</span><span>${count} Wins!</span>`;
+            badge.style.border = '2px solid #FF9933';
+            badge.style.color = '#FF9933';
+        } else {
+            badge.innerHTML = `<span style="font-size: 16px; margin-right:4px">❄️</span><span>${count} Loss</span>`;
+            badge.style.border = '2px solid #60A5FA';
+            badge.style.color = '#60A5FA';
+        }
+        badge.style.display = 'inline-flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
 function refreshDashboard(){
     const trades=UD.trades;
     const realTrades=trades.filter(t=>t.result!=='No Trading');
@@ -1481,9 +1634,17 @@ function refreshDashboard(){
 
     const totalChecks=trades.reduce((s,t)=>s+Object.values(t.checklist||{}).filter(v=>v).length,0);
     const discipline=trades.length?((totalChecks/(trades.length*4))*100).toFixed(1):0;
-    const avgScore=trades.length?(trades.reduce((s,t)=>s+t.score,0)/trades.length):0;
+    
+    // Exclude 'No Trading' trades when calculating average consistency score!
+    const scoredTrades = trades.filter(t => t.score !== null && t.score !== undefined);
+    const avgScore=scoredTrades.length?(scoredTrades.reduce((s,t)=>s+t.score,0)/scoredTrades.length):0;
+    
     let rating='-';
-    if(avgScore>=90)rating='A+';else if(avgScore>=80)rating='A';else if(avgScore>=70)rating='B';else if(avgScore>=60)rating='C';else if(trades.length)rating='D';
+    if(avgScore>=95)rating='🌟 Legend';
+    else if(avgScore>=85)rating='A+';
+    else if(avgScore>=70)rating='A';
+    else if(avgScore>=50)rating='B';
+    else if(scoredTrades.length)rating='Needs Work';
 
     const uniqueDays=[...new Set(trades.map(t=>t.date))].length;
     const dayPL={};
@@ -1496,7 +1657,7 @@ function refreshDashboard(){
         <div class="stat-card"><div class="stat-top"><div><div class="stat-label">Total P&amp;L</div><div class="stat-value" style="color:${totalPL>=0?'var(--green)':'var(--red)'}">₹${totalPL.toLocaleString('en-IN',{maximumFractionDigits:0})}</div><div class="stat-sub">${total} trades</div></div><div class="stat-icon gold"><i class="fas fa-wallet"></i></div></div></div>
         <div class="stat-card"><div class="stat-top"><div><div class="stat-label">Win Rate</div><div class="stat-value">${winRate}%</div><div class="stat-sub">${wins}W / ${losses}L / ${bes}BE</div></div><div class="stat-icon green"><i class="fas fa-percentage"></i></div></div></div>
         <div class="stat-card"><div class="stat-top"><div><div class="stat-label">Discipline</div><div class="stat-value">${discipline}%</div><div class="stat-sub">Checklist score</div></div><div class="stat-icon blue"><i class="fas fa-shield-alt"></i></div></div></div>
-        <div class="stat-card"><div class="stat-top"><div><div class="stat-label">Trader Rating</div><div class="stat-value">${rating}</div><div class="stat-sub">Avg Score: ${Math.round(avgScore)}</div></div><div class="stat-icon gold"><i class="fas fa-star"></i></div></div></div>
+        <div class="stat-card"><div class="stat-top"><div><div class="stat-label">Consistency Score</div><div class="stat-value" style="color:var(--gold)">${Math.round(avgScore)}%</div><div class="stat-sub">Grade: ${rating}</div></div><div class="stat-icon gold"><i class="fas fa-medal"></i></div></div></div>
     `;
     document.getElementById('dashSubStats').innerHTML=`
         <div class="stat-card"><div class="stat-label">Trading Days</div><div class="stat-value">${uniqueDays}</div></div>
@@ -1505,7 +1666,7 @@ function refreshDashboard(){
         <div class="stat-card"><div class="stat-label">Break-even Days</div><div class="stat-value" style="color:var(--text2)">${beDays}</div></div>
     `;
 
-    renderStreaks();
+    renderSnapchatStreaks();
     updateCharts();
     renderDashTable();
 }
@@ -1556,13 +1717,7 @@ function updateCharts(){
     Chart.defaults.color='#94A3B8';
     Chart.defaults.borderColor='#2A3656';
 
-    // Daily
     const sorted=[...trades].sort((a,b)=>new Date(a.date)-new Date(b.date));
-    const dayMap={};
-    sorted.forEach(t=>{dayMap[t.date]=(dayMap[t.date]||0)+t.pl});
-    const dLabels=Object.keys(dayMap).map(d=>{const dt=new Date(d);return dt.getDate()+'/'+(dt.getMonth()+1)});
-    const dData=Object.values(dayMap);
-    makeChart('cDaily','bar',{labels:dLabels,datasets:[{label:'Daily P&L',data:dData,backgroundColor:dData.map(v=>v>=0?'rgba(16,185,129,.7)':'rgba(239,68,68,.7)'),borderRadius:6}]},{legend:{display:false}});
 
     // Emotion
     const eCount={};
@@ -1574,11 +1729,11 @@ function updateCharts(){
     trades.filter(t=>t.result!=='No Trading').forEach(t=>{if(!sStats[t.setup])sStats[t.setup]={w:0,t:0};sStats[t.setup].t++;if(t.result==='Win')sStats[t.setup].w++});
     makeChart('cSetup','bar',{labels:Object.keys(sStats),datasets:[{label:'Win %',data:Object.values(sStats).map(s=>(s.w/s.t*100).toFixed(1)),backgroundColor:'#3B82F6',borderRadius:6}]},{legend:{display:false},scales:{y:{beginAtZero:true,max:100}}});
 
-    // Cumulative
+    // Equity Curve
     let cum=0;
     const cumData=sorted.map(t=>{cum+=t.pl;return cum});
     const cumLabels=sorted.map(t=>{const d=new Date(t.date);return d.getDate()+'/'+(d.getMonth()+1)});
-    makeChart('cCumulative','line',{labels:cumLabels,datasets:[{label:'Cumulative P&L',data:cumData,borderColor:'#FFD700',backgroundColor:'rgba(255,215,0,.1)',fill:true,tension:.4}]},{legend:{display:false}});
+    makeChart('cCumulative','line',{labels:cumLabels,datasets:[{label:'Equity Curve',data:cumData,borderColor:'#FFD700',backgroundColor:'rgba(255,215,0,.1)',fill:true,tension:.4}]},{legend:{display:false}});
 }
 
 function makeChart(id,type,data,opts){
@@ -1662,14 +1817,14 @@ function refreshAnalytics(){
 function refreshCompounding(){
     const totalPL=UD.trades.filter(t=>t.result!=='No Trading').reduce((s,t)=>s+t.pl,0);
     const stages=UD.compoundingStages||[];
-    let overallTarget=0;
+    let goalTarget=0;
     let currentStage=0;
 
     document.getElementById('compCurrentStatus').innerHTML='<h3 style="margin-bottom:15px">🎯 Current Status</h3>';
 
     let html='';
     stages.forEach((st,i)=>{
-        overallTarget+=st.target;
+        goalTarget+=st.target; // Cumulative target of the highest stage
     });
     let cumulTarget=0;
     stages.forEach((st,i)=>{
@@ -1691,13 +1846,18 @@ function refreshCompounding(){
     });
     document.getElementById('stagesContainer').innerHTML=html||'<div class="empty-state"><p>No stages configured</p></div>';
 
-    const stage=stages[currentStage]||{risk:0};
+    const stage=stages[currentStage]||{risk:0, target:0};
+    const prevTargetValue = currentStage > 0 ? stages.slice(0, currentStage).reduce((s, st) => s + st.target, 0) : 0;
+    const profitInStage = Math.max(0, totalPL - prevTargetValue);
+    const remainingTarget = Math.max(0, stage.target - profitInStage);
+
     document.getElementById('compCurrentStatus').innerHTML+=`<div class="stats-grid">
         <div class="stat-card"><div class="stat-label">Current Stage</div><div class="stat-value">Stage ${currentStage+1}</div></div>
         <div class="stat-card"><div class="stat-label">Current Risk</div><div class="stat-value">₹${stage.risk}</div></div>
         <div class="stat-card"><div class="stat-label">Overall Profit</div><div class="stat-value" style="color:${totalPL>=0?'var(--green)':'var(--red)'}">₹${totalPL.toFixed(0)}</div></div>
-        <div class="stat-card"><div class="stat-label">Next Target</div><div class="stat-value">₹${overallTarget}</div></div>
-    </div><div class="progress-bar" style="margin-top:15px"><div class="progress-fill" style="width:${overallTarget?Math.min(100,totalPL/overallTarget*100):0}%"></div></div>`;
+        <div class="stat-card"><div class="stat-label">Goal Target</div><div class="stat-value" style="color:var(--gold)">₹${goalTarget}</div></div>
+        <div class="stat-card" style="grid-column: span 2"><div class="stat-label">Remaining Stage Target (To complete Stage ${currentStage+1})</div><div class="stat-value" style="color:var(--orange)">₹${remainingTarget.toFixed(0)}</div></div>
+    </div>`;
 }
 
 function openStageModal(){ editStageIdx=null; document.getElementById('stageModalTitle').textContent='Add Stage'; ['sRisk','sTrades','sTarget'].forEach(id=>document.getElementById(id).value=''); document.getElementById('stageModal').classList.add('active'); }
@@ -1724,6 +1884,7 @@ function openTradeModal(){
     document.getElementById('tResult').value='';
     document.getElementById('tEmotion').value='';
     document.getElementById('tMistake').value='';
+    document.getElementById('tLearn').value=''; // Reset What I learnt today
     ['cSetup','cEntry','cSL','cOver'].forEach(id=>document.getElementById(id).checked=false);
     document.getElementById('calcRR').textContent='-';
     document.getElementById('calcARR').textContent='-';
@@ -1736,16 +1897,79 @@ function openTradeModal(){
     document.getElementById('tThoughtsCount').textContent='0 / 1000 words';
     populateDynamicCustomFields(null);
     
+    // Reset Trade Image elements
+    tempAttachedImageBase64 = null;
+    document.getElementById('tImageUpload').value = '';
+    document.getElementById('tImageUrl').value = '';
+    document.getElementById('tImagePreview').style.display = 'none';
+    
     document.getElementById('tradeModal').classList.add('active');
 }
 
+// GLOBAL BASE64 ATTACHMENT TEMP HOLDER
+let tempAttachedImageBase64 = null;
+
+function handleTradeImageUpload(event, prefix) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+            tempAttachedImageBase64 = ev.target.result;
+            renderTradeImagePreview(prefix, tempAttachedImageBase64);
+            // Clear URL input if file is uploaded
+            document.getElementById(`${prefix}ImageUrl`).value = '';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function handleTradeImageUrlInput(prefix) {
+    const url = document.getElementById(`${prefix}ImageUrl`).value.trim();
+    if (url) {
+        tempAttachedImageBase64 = url;
+        renderTradeImagePreview(prefix, url);
+        // Clear File upload input if URL is pasted
+        document.getElementById(`${prefix}ImageUpload`).value = '';
+    } else {
+        tempAttachedImageBase64 = null;
+        document.getElementById(`${prefix}ImagePreview`).style.display = 'none';
+    }
+}
+
+function renderTradeImagePreview(prefix, src) {
+    const preview = document.getElementById(`${prefix}ImagePreview`);
+    preview.innerHTML = `<img src="${src}" style="width:100%; height:100%; object-fit:contain"><button onclick="removeAttachedTradeImage('${prefix}')" style="position:absolute; top:5px; right:5px; background:var(--red); color:#fff; border:none; border-radius:50%; width:24px; height:24px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center">×</button>`;
+    preview.style.display = 'block';
+}
+
+function removeAttachedTradeImage(prefix) {
+    tempAttachedImageBase64 = null;
+    document.getElementById(`${prefix}ImageUpload`).value = '';
+    document.getElementById(`${prefix}ImageUrl`).value = '';
+    document.getElementById(`${prefix}ImagePreview`).style.display = 'none';
+}
+
 function populateTradeDropdowns(){
-    const ss=document.getElementById('tSetup'); ss.innerHTML='<option value="">Select Setup</option>';
-    UD.settings.setups.forEach(s=>ss.innerHTML+=`<option value="${s}">${s}</option>`);
+    const ss=document.getElementById('tSetup'); 
+    ss.innerHTML='<option value="">Select Setup</option>';
+    // 1. Add standard Indian setups
+    (UD.settings.setups || []).forEach(s=>ss.innerHTML+=`<option value="${s}">${s}</option>`);
+    // 2. Add custom admin-created Indian setups
+    (UD.mySetups || []).forEach(s=>{
+        if (s.market === 'indian' || s.market === 'both') {
+            ss.innerHTML+=`<option value="${s.name}">${s.name}</option>`;
+        }
+    });
+    
     const es=document.getElementById('tEmotion'); es.innerHTML='<option value="">Select Emotion</option>';
-    UD.settings.emotions.forEach(e=>es.innerHTML+=`<option value="${e}">${e}</option>`);
+    (UD.settings.emotions || []).forEach(e=>es.innerHTML+=`<option value="${e}">${e}</option>`);
+    
     const ms=document.getElementById('tMistake'); ms.innerHTML='<option value="">No Mistake</option>';
-    UD.settings.mistakes.forEach(m=>ms.innerHTML+=`<option value="${m}">${m}</option>`);
+    (UD.settings.mistakes || []).forEach(m=>ms.innerHTML+=`<option value="${m}">${m}</option>`);
+    
+    const ls=document.getElementById('tLearn'); ls.innerHTML='<option value="">Select Lesson</option>';
+    UD.settings.learnList = UD.settings.learnList || ['Manage Risk', "Don't Overtrade", 'Cut Losses Early', 'Let Winners Run'];
+    UD.settings.learnList.forEach(l=>ls.innerHTML+=`<option value="${l}">${l}</option>`);
 }
 
 function editTrade(id){
@@ -1765,6 +1989,7 @@ function editTrade(id){
     document.getElementById('tResult').value=t.result;
     document.getElementById('tEmotion').value=t.emotion;
     document.getElementById('tMistake').value=t.mistake||'';
+    document.getElementById('tLearn').value=t.learn||''; // Populate What I learnt today
     document.getElementById('cSetup').checked=t.checklist.setup;
     document.getElementById('cEntry').checked=t.checklist.entry;
     document.getElementById('cSL').checked=t.checklist.sl;
@@ -1774,6 +1999,19 @@ function editTrade(id){
     document.getElementById('tThoughts').value = t.thoughts || '';
     checkThoughtsWordCount(document.getElementById('tThoughts'));
     populateDynamicCustomFields(t);
+    
+    // Load Attached Image
+    tempAttachedImageBase64 = t.attachedImage || null;
+    document.getElementById('tImageUpload').value = '';
+    document.getElementById('tImageUrl').value = t.attachedImageUrl || '';
+    if (tempAttachedImageBase64) {
+        renderTradeImagePreview('t', tempAttachedImageBase64);
+    } else if (t.attachedImageUrl) {
+        tempAttachedImageBase64 = t.attachedImageUrl;
+        renderTradeImagePreview('t', t.attachedImageUrl);
+    } else {
+        document.getElementById('tImagePreview').style.display = 'none';
+    }
     
     calcTradeMetrics();
     calcTradeScore();
@@ -1814,22 +2052,33 @@ function calcTradeMetrics(){
 }
 
 function calcTradeScore(){
+    const resultVal = document.getElementById('tResult').value;
+    if (resultVal === 'No Trading') {
+        document.getElementById('calcScore').textContent = '-';
+        document.getElementById('calcGrade').textContent = 'No Trading';
+        document.getElementById('calcGrade').style.color = 'var(--text2)';
+        return;
+    }
+
     const checklistCheckedCount = ['cSetup','cEntry','cSL','cOver'].filter(id => document.getElementById(id).checked).length;
-    const checklistScore = checklistCheckedCount * 22.5; // Ticking all 4 gives exactly 90 points
+    const processScore = checklistCheckedCount * 25; // 4 boxes = exactly 100 points
     
-    // Setup Quality points (Max 4)
-    const qMap = { Perfect: 4, Good: 3, Average: 2, 'Bad Setup': 1, 'No Setup/Faltugiri': 0 };
+    // Psychology Score (4 parameters, 25 points each!)
+    const qMap = { Perfect: 25, Good: 20, Average: 15, 'Bad Setup': 10, 'No Setup/Faltugiri': 0 };
     const setupQualityScore = qMap[document.getElementById('tQuality').value] || 0;
     
-    // Emotion points (Max 3)
     const emotionVal = document.getElementById('tEmotion').value;
-    const emotionScore = (emotionVal === 'Calm' || emotionVal === 'Confident') ? 3 : 1;
+    const emotionScore = (emotionVal === 'Calm' || emotionVal === 'Confident') ? 25 : 10;
     
-    // Mistake points (Max 3)
     const mistakeVal = document.getElementById('tMistake').value;
-    const mistakeScore = (!mistakeVal || mistakeVal === 'No Mistake' || mistakeVal === '') ? 3 : 0;
+    const mistakeScore = (!mistakeVal || mistakeVal === 'No Mistake' || mistakeVal === '') ? 25 : 0;
     
-    const score = checklistScore + setupQualityScore + emotionScore + mistakeScore;
+    const rMap = { Win: 25, 'Break-even': 15, Loss: 0 };
+    const resultScore = rMap[resultVal] !== undefined ? rMap[resultVal] : 0;
+    
+    const psychologyScore = setupQualityScore + emotionScore + mistakeScore + resultScore;
+    const score = (processScore + psychologyScore) / 2; // Total combined score out of 100
+    
     document.getElementById('calcScore').textContent = Math.round(score) + '/100';
     
     let g = 'Needs Work';
@@ -2100,7 +2349,8 @@ function refreshReports(){
             <td>${t.number}${starHTML}</td><td>${fmtDate(t.date)}</td><td>${t.setup}</td><td>${t.entry}</td><td>${t.sl}</td><td>${t.target}</td><td>${t.exit}</td>
             <td style="color:${t.pl>=0?'var(--green)':'var(--red)'}">${t.pl.toFixed(2)}</td>
             <td><span class="badge ${badgeCls(t.result)}">${t.result}</span></td><td>${t.emotion}</td><td>${t.mistake||'-'}</td>
-            <td>${Math.round(t.score)}</td><td><span class="grade ${gradeCls(t.grade)}">${t.grade}</span></td>
+            <td>${t.score ? Math.round(t.score) : '-'}</td><td><span class="grade ${gradeCls(t.grade)}">${t.grade}</span></td>
+            <td><button class="btn btn-blue btn-sm" onclick="viewTradeDetails(${t.id})" style="padding: 6px 10px; font-size: 11px;"><i class="fas fa-eye"></i></button></td>
         </tr>`;
     }).join('');
     
@@ -2127,7 +2377,8 @@ function refreshReports(){
         return `<tr>
             <td style="font-weight:700">${t.number}${starHTML}</td><td>${fmtDate(t.date)}</td><td style="color:var(--gold);font-weight:700">${t.pair}</td><td><span class="badge ${t.type==='Buy'?'win':'loss'}">${t.type}</span></td><td>${t.lotSize}</td><td>${t.entry}</td><td>${t.sl}</td><td>${t.target}</td><td>${t.exit}</td><td>${t.pips.toFixed(1)}</td>
             <td style="color:${t.pl>=0?'var(--green)':'var(--red)'};font-weight:700">$${t.pl.toFixed(2)}</td>
-            <td><span class="badge ${badgeCls(t.result)}">${t.result}</span></td><td>${Math.round(t.score)}</td><td><span class="grade ${gradeCls(t.grade)}">${t.grade}</span></td>
+            <td><span class="badge ${badgeCls(t.result)}">${t.result}</span></td><td>${t.score ? Math.round(t.score) : '-'}</td><td><span class="grade ${gradeCls(t.grade)}">${t.grade}</span></td>
+            <td><button class="btn btn-blue btn-sm" onclick="viewForexTradeDetails(${t.id})" style="padding: 6px 10px; font-size: 11px;"><i class="fas fa-eye"></i></button></td>
         </tr>`;
     }).join('');
 }
@@ -2181,6 +2432,7 @@ function openSetupModal(){
     editSetupIdx=null;
     document.getElementById('setupModalTitle').textContent='Add Setup';
     document.getElementById('suName').value='';
+    document.getElementById('suMarket').value='indian';
     document.getElementById('suDesc').value='';
     document.getElementById('suImage').value='';
     document.getElementById('suPreview').innerHTML='';
@@ -2193,6 +2445,7 @@ function editMySetup(i){
     const s=UD.mySetups[i];
     document.getElementById('setupModalTitle').textContent='Edit Setup';
     document.getElementById('suName').value=s.name;
+    document.getElementById('suMarket').value=s.market||'indian';
     document.getElementById('suDesc').value=s.description||'';
     setupImages=s.images?[...s.images]:[];
     renderSetupPreview();
@@ -2217,7 +2470,8 @@ function removeSetupImg(i){ setupImages.splice(i,1); renderSetupPreview(); }
 function saveMySetup(){
     const name=document.getElementById('suName').value.trim();
     if(!name){alert('Setup name is required');return;}
-    const item={name,description:document.getElementById('suDesc').value,images:[...setupImages]};
+    const market=document.getElementById('suMarket').value;
+    const item={name,market,description:document.getElementById('suDesc').value,images:[...setupImages]};
     if(!UD.mySetups) UD.mySetups=[];
     if(editSetupIdx!==null) UD.mySetups[editSetupIdx]=item; else UD.mySetups.push(item);
     saveUD(CU.username,UD); closeModal('setupModal'); renderMySetups();
@@ -2996,9 +3250,43 @@ function viewTradeDetails(id) {
     // Render thoughts
     const thoughtsText = t.thoughts && t.thoughts.trim().length > 0 ? t.thoughts : 'No thoughts described.';
     
+    // Render lessons
+    const learnHTML = t.learn ? `
+        <div style="margin-top: 10px">
+            <h4 style="color: var(--gold); border-bottom: 2px solid var(--border); padding-bottom: 5px; margin-bottom: 10px; font-weight: 800; font-size: 14px">🎓 What I Learnt Today?</h4>
+            <div style="background: var(--card2); border: 1px solid var(--border); padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 700; color: var(--gold)"><i class="fas fa-graduation-cap" style="margin-right:6px"></i> ${t.learn}</div>
+        </div>
+    ` : '';
+
+    // Render image attachment (clickable)
+    let imageHTML = '';
+    if (t.attachedImage) {
+        const isUrl = t.attachedImage.startsWith('http://') || t.attachedImage.startsWith('https://');
+        imageHTML = `
+            <div style="margin-top: 10px">
+                <h4 style="color: var(--gold); border-bottom: 2px solid var(--border); padding-bottom: 5px; margin-bottom: 10px; font-weight: 800; font-size: 14px">📸 Attached Trade Screenshot</h4>
+                <div style="background: var(--card2); border: 1px solid var(--border); padding: 10px; border-radius: 10px; text-align: center">
+                    <a href="${t.attachedImage}" target="_blank">
+                        <img src="${t.attachedImage}" style="max-width: 100%; max-height: 220px; border-radius: 8px; object-fit: contain; cursor: pointer; border: 1px solid var(--gold)">
+                    </a>
+                    <p style="font-size: 10px; color: var(--text2); margin-top: 6px"><i class="fas fa-search-plus"></i> Click image to open in full size</p>
+                </div>
+            </div>
+        `;
+    } else if (t.attachedImageUrl) {
+        imageHTML = `
+            <div style="margin-top: 10px">
+                <h4 style="color: var(--gold); border-bottom: 2px solid var(--border); padding-bottom: 5px; margin-bottom: 10px; font-weight: 800; font-size: 14px">🔗 Attached Trade Link</h4>
+                <div style="background: var(--card2); border: 1px solid var(--border); padding: 12px; border-radius: 10px">
+                    <a href="${t.attachedImageUrl}" target="_blank" style="color: var(--gold); font-weight: 700; text-decoration: underline"><i class="fas fa-external-link-alt"></i> Open Attached Reference Link</a>
+                </div>
+            </div>
+        `;
+    }
+    
     container.innerHTML = `
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; background: var(--bg); padding: 15px; border-radius: 12px; border: 2px solid var(--border)">
-            <div><span style="color: var(--text2); font-size:11px">Trade #:</span> <strong style="font-size:14px; margin-left:5px">${t.number}</strong></div>
+            <div><span style="color: var(--text2); font-size:11px">Trade #:</span> <strong style="font-size:14px; margin-left:5px">${t.number}${t.hasStar ? ' ⭐' : ''}</strong></div>
             <div><span style="color: var(--text2); font-size:11px">Date:</span> <strong style="font-size:14px; margin-left:5px">${fmtDate(t.date)}</strong></div>
             <div><span style="color: var(--text2); font-size:11px">Setup:</span> <strong style="font-size:14px; margin-left:5px">${t.setup} (${t.setupQuality})</strong></div>
             <div><span style="color: var(--text2); font-size:11px">Result:</span> <span class="badge ${badgeCls(t.result)}" style="margin-left:5px">${t.result}</span></div>
@@ -3009,6 +3297,8 @@ function viewTradeDetails(id) {
             <h4 style="color: var(--gold); border-bottom: 2px solid var(--border); padding-bottom: 5px; margin-bottom: 10px; font-weight: 800; font-size: 14px">💭 Thoughts & Checklist Description</h4>
             <div style="background: var(--card3); padding: 15px; border-radius: 10px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; color: var(--text); border: 1px dashed var(--border)">${thoughtsText}</div>
         </div>
+        ${learnHTML}
+        ${imageHTML}
         ${customFieldsHTML}
     `;
     
@@ -3090,15 +3380,26 @@ showPage = function(page) {
 function populateForexDropdowns() {
     const ss = document.getElementById('fSetup');
     ss.innerHTML = '<option value="">Select Setup</option>';
-    UD.settings.setups.forEach(s => ss.innerHTML += `<option value="${s}">${s}</option>`);
+    // 1. Add standard Forex setups
+    (UD.settings.forexSetups || ['Double Top', 'Head and Shoulders', 'MACD Divergence']).forEach(s => ss.innerHTML += `<option value="${s}">${s}</option>`);
+    // 2. Add custom admin-created Forex setups
+    (UD.mySetups || []).forEach(s => {
+        if (s.market === 'forex' || s.market === 'both') {
+            ss.innerHTML += `<option value="${s.name}">${s.name}</option>`;
+        }
+    });
     
     const es = document.getElementById('fEmotion');
     es.innerHTML = '<option value="">Select Emotion</option>';
-    UD.settings.emotions.forEach(e => es.innerHTML += `<option value="${e}">${e}</option>`);
+    (UD.settings.emotions || []).forEach(e => es.innerHTML += `<option value="${e}">${e}</option>`);
     
     const ms = document.getElementById('fMistake');
     ms.innerHTML = '<option value="">No Mistake</option>';
-    UD.settings.mistakes.forEach(m => ms.innerHTML += `<option value="${m}">${m}</option>`);
+    (UD.settings.mistakes || []).forEach(m => ms.innerHTML += `<option value="${m}">${m}</option>`);
+    
+    const ls = document.getElementById('fLearn');
+    ls.innerHTML = '<option value="">Select Lesson</option>';
+    (UD.settings.learnList || ['Manage Risk', "Don't Overtrade", 'Cut Losses Early', 'Let Winners Run']).forEach(l => ls.innerHTML += `<option value="${l}">${l}</option>`);
 }
 
 function openForexTradeModal() {
@@ -3161,9 +3462,13 @@ function calcForexMetrics() {
             document.getElementById('fCalcARR').textContent = '-1 : ' + Math.abs(ratio).toFixed(2);
         }
         
-        // Pips Calculation
-        const isJpyOrGold = pair.includes('JPY') || pair === 'XAU/USD';
-        const multiplier = isJpyOrGold ? 100 : 10000;
+        // Accurate Pip Multiplier (Gold = 10, JPY = 100, Standard = 10000)
+        let multiplier = 10000;
+        if (pair === 'XAU/USD') {
+            multiplier = 10; // Gold 1 pip = $0.10 price change
+        } else if (pair.includes('JPY')) {
+            multiplier = 100; // JPY 1 pip = 0.01 price change
+        }
         
         let pips = (ex - entry) * multiplier;
         if (type === 'Sell') {
@@ -3180,19 +3485,33 @@ function calcForexMetrics() {
 }
 
 function calcForexScore() {
+    const resultVal = document.getElementById('fResult').value;
+    if (resultVal === 'No Trading') {
+        document.getElementById('fCalcScore').textContent = '-';
+        document.getElementById('fCalcGrade').textContent = 'No Trading';
+        document.getElementById('fCalcGrade').style.color = 'var(--text2)';
+        return;
+    }
+
     const checklistCheckedCount = ['cfSetup','cfEntry','cfSL','cfOver'].filter(id => document.getElementById(id).checked).length;
-    const checklistScore = checklistCheckedCount * 22.5; // Checklist worth 90 points
+    const processScore = checklistCheckedCount * 25; // 4 boxes = exactly 100 points
     
-    const qMap = { Perfect: 4, Good: 3, Average: 2, 'Bad Setup': 1, 'No Setup/Faltugiri': 0 };
+    // Psychology Score (4 parameters, 25 points each!)
+    const qMap = { Perfect: 25, Good: 20, Average: 15, 'Bad Setup': 10, 'No Setup/Faltugiri': 0 };
     const setupQualityScore = qMap[document.getElementById('fQuality').value] || 0;
     
     const emotionVal = document.getElementById('fEmotion').value;
-    const emotionScore = (emotionVal === 'Calm' || emotionVal === 'Confident') ? 3 : 1;
+    const emotionScore = (emotionVal === 'Calm' || emotionVal === 'Confident') ? 25 : 10;
     
     const mistakeVal = document.getElementById('fMistake').value;
-    const mistakeScore = (!mistakeVal || mistakeVal === 'No Mistake' || mistakeVal === '') ? 3 : 0;
+    const mistakeScore = (!mistakeVal || mistakeVal === 'No Mistake' || mistakeVal === '') ? 25 : 0;
     
-    const score = checklistScore + setupQualityScore + emotionScore + mistakeScore;
+    const rMap = { Win: 25, 'Break-even': 15, Loss: 0 };
+    const resultScore = rMap[resultVal] !== undefined ? rMap[resultVal] : 0;
+    
+    const psychologyScore = setupQualityScore + emotionScore + mistakeScore + resultScore;
+    const score = (processScore + psychologyScore) / 2; // Total combined score out of 100
+    
     document.getElementById('fCalcScore').textContent = Math.round(score) + '/100';
     
     let g = 'Needs Work';
@@ -3302,6 +3621,7 @@ function editForexTrade(id) {
     document.getElementById('fQuality').value = t.setupQuality;
     document.getElementById('fEmotion').value = t.emotion;
     document.getElementById('fMistake').value = t.mistake || '';
+    document.getElementById('fLearn').value = t.learn || ''; // Load lesson
     
     document.getElementById('cfSetup').checked = t.checklist.setup;
     document.getElementById('cfEntry').checked = t.checklist.entry;
@@ -3312,12 +3632,45 @@ function editForexTrade(id) {
     checkForexThoughtsWordCount(document.getElementById('fThoughts'));
     populateForexDynamicCustomFields(t);
     
+    // Load Attached Image
+    tempAttachedImageBase64 = t.attachedImage || null;
+    document.getElementById('fImageUpload').value = '';
+    document.getElementById('fImageUrl').value = t.attachedImageUrl || '';
+    if (tempAttachedImageBase64) {
+        renderTradeImagePreview('f', tempAttachedImageBase64);
+    } else if (t.attachedImageUrl) {
+        tempAttachedImageBase64 = t.attachedImageUrl;
+        renderTradeImagePreview('f', t.attachedImageUrl);
+    } else {
+        document.getElementById('fImagePreview').style.display = 'none';
+    }
+    
     calcForexMetrics();
     calcForexScore();
     document.getElementById('forexTradeModal').classList.add('active');
 }
 
 async function saveForexTrade() {
+    const resultVal = document.getElementById('fResult').value;
+    const thoughtsVal = document.getElementById('fThoughts').value.trim();
+    
+    // If No Trading: Thoughts/Description is the ONLY mandatory field!
+    if (resultVal === 'No Trading') {
+        if (!thoughtsVal) {
+            alert('❌ Thoughts / Description is MANDATORY when Result is "No Trading"!');
+            return;
+        }
+    } else {
+        // Standard validations
+        const pairVal = document.getElementById('fPair').value;
+        const setupVal = document.getElementById('fSetup').value;
+        const emotionVal = document.getElementById('fEmotion').value;
+        if (!pairVal || !setupVal || !resultVal || !emotionVal) {
+            alert('Please fill all required fields (Pair, Setup, Result, and Emotion)');
+            return;
+        }
+    }
+
     const t={
         id:editTradeId||Date.now(),
         date:document.getElementById('fDate').value,
@@ -3329,13 +3682,16 @@ async function saveForexTrade() {
         sl:+document.getElementById('fSL').value,
         target:+document.getElementById('fTarget').value,
         exit:+document.getElementById('fExit').value,
-        result:document.getElementById('fResult').value,
+        result:resultVal,
         setup:document.getElementById('fSetup').value,
         setupQuality:document.getElementById('fQuality').value,
         emotion:document.getElementById('fEmotion').value,
         mistake:document.getElementById('fMistake').value,
+        learn:document.getElementById('fLearn').value, // What I learnt Today
         checklist:{setup:document.getElementById('cfSetup').checked,entry:document.getElementById('cfEntry').checked,sl:document.getElementById('cfSL').checked,overtrade:document.getElementById('cfOver').checked},
-        thoughts:document.getElementById('fThoughts').value,
+        thoughts:thoughtsVal,
+        attachedImage: tempAttachedImageBase64 || '', // Attached Base64 or URL link
+        attachedImageUrl: document.getElementById('fImageUrl').value.trim(),
         customFields: {}
     };
     
@@ -3344,53 +3700,73 @@ async function saveForexTrade() {
         const fieldId = input.getAttribute('data-id');
         t.customFields[fieldId] = input.value;
     });
-    
-    if(!t.pair||!t.result||!t.setup||!t.emotion){alert('Please fill all required fields');return;}
-    
-    // Forex Pips and P&L Math
-    const calcs = calcForexPipsAndPL();
-    t.pips = calcs.pips;
-    t.pl = calcs.pl;
-    
-    const risk = Math.abs(t.entry - t.sl);
-    const plannedReward = Math.abs(t.target - t.entry);
-    const actualReward = t.exit - t.entry; // handles Buy/Sell correctly
-    
-    t.plannedRRValue = risk > 0 ? (plannedReward / risk) : 0;
-    t.actualRRValue = risk > 0 ? (actualReward / risk) : 0;
-    t.plannedRR = risk > 0 ? `1 : ${t.plannedRRValue.toFixed(2)}` : '1 : 0';
-    if (t.actualRRValue >= 0) {
-        t.actualRR = risk > 0 ? `1 : ${t.actualRRValue.toFixed(2)}` : '1 : 0';
+
+    if (t.result === 'No Trading') {
+        t.plannedRR = '1 : 0';
+        t.actualRR = '1 : 0';
+        t.plannedRRValue = 0;
+        t.actualRRValue = 0;
+        t.pips = 0;
+        t.pl = 0;
+        t.hasStar = false;
+        t.score = null; // No impact on grades!
+        t.grade = 'No Trading';
+        t.gradeText = 'No active trade taken today.';
     } else {
-        t.actualRR = risk > 0 ? `-1 : ${Math.abs(t.actualRRValue).toFixed(2)}` : '-1 : 0';
-    }
-    
-    t.hasStar = (t.actualRRValue >= 6.00);
-    
-    // Checklist Calculations
-    const checklistScore = Object.values(t.checklist).filter(v=>v).length * 22.5;
-    const qMap = { Perfect: 4, Good: 3, Average: 2, 'Bad Setup': 1, 'No Setup/Faltugiri': 0 };
-    const setupQualityScore = qMap[t.setupQuality] || 0;
-    const emotionScore = (t.emotion === 'Calm' || t.emotion === 'Confident') ? 3 : 1;
-    const mistakeScore = (!t.mistake || t.mistake === 'No Mistake' || t.mistake === '') ? 3 : 0;
-    
-    t.score = checklistScore + setupQualityScore + emotionScore + mistakeScore;
-    
-    if (t.score >= 95) {
-        t.grade = '🌟 Legend';
-        t.gradeText = 'Outstanding trade execution!';
-    } else if (t.score >= 85) {
-        t.grade = 'A+';
-        t.gradeText = 'Excellent discipline and setup selection';
-    } else if (t.score >= 70) {
-        t.grade = 'A';
-        t.gradeText = 'Good trade, minor corrections possible';
-    } else if (t.score >= 50) {
-        t.grade = 'B';
-        t.gradeText = 'Discipline kept but can improve setup/emotions';
-    } else {
-        t.grade = 'Needs Work';
-        t.gradeText = 'Keep your chin up! Every mistake is a lesson to make you a better trader.';
+        // Forex Pips and P&L Math
+        const calcs = calcForexPipsAndPLCustom(t);
+        t.pips = calcs.pips;
+        t.pl = calcs.pl;
+        
+        const risk = Math.abs(t.entry - t.sl);
+        const plannedReward = Math.abs(t.target - t.entry);
+        const actualReward = t.exit - t.entry; // handles Buy/Sell correctly
+        
+        t.plannedRRValue = risk > 0 ? (plannedReward / risk) : 0;
+        t.actualRRValue = risk > 0 ? (actualReward / risk) : 0;
+        t.plannedRR = risk > 0 ? `1 : ${t.plannedRRValue.toFixed(2)}` : '1 : 0';
+        if (t.actualRRValue >= 0) {
+            t.actualRR = risk > 0 ? `1 : ${t.actualRRValue.toFixed(2)}` : '1 : 0';
+        } else {
+            t.actualRR = risk > 0 ? `-1 : ${Math.abs(t.actualRRValue).toFixed(2)}` : '-1 : 0';
+        }
+        
+        t.hasStar = (t.actualRRValue >= 6.00);
+        
+        // Checklist Process Score (Max 100 points, each box = 25 points!)
+        const checklistCheckedCount = ['cfSetup','cfEntry','cfSL','cfOver'].filter(id => document.getElementById(id).checked).length;
+        const processScore = checklistCheckedCount * 25; // Ticking all 4 gives exactly 100 points
+        
+        // Psychology Score (4 parameters, 25 points each!)
+        const qMap = { Perfect: 25, Good: 20, Average: 15, 'Bad Setup': 10, 'No Setup/Faltugiri': 0 };
+        const setupQualityScore = qMap[t.setupQuality] || 0;
+        
+        const emotionScore = (t.emotion === 'Calm' || t.emotion === 'Confident') ? 25 : 10;
+        const mistakeScore = (!t.mistake || t.mistake === 'No Mistake' || t.mistake === '') ? 25 : 0;
+        
+        const rMap = { Win: 25, 'Break-even': 15, Loss: 0 };
+        const resultScore = rMap[t.result] !== undefined ? rMap[t.result] : 0;
+        
+        const psychologyScore = setupQualityScore + emotionScore + mistakeScore + resultScore;
+        
+        t.score = (processScore + psychologyScore) / 2;
+        
+        if (t.score >= 95) {
+            t.grade = '🌟 Legend';
+            t.gradeText = 'Outstanding trade execution!';
+        } else if (t.score >= 85) {
+            t.grade = 'A+';
+            t.gradeText = 'Excellent discipline and setup selection';
+        } else if (t.score >= 70) {
+            t.grade = 'A';
+            t.gradeText = 'Good trade, minor corrections possible';
+        } else if (t.score >= 50) {
+            t.grade = 'B';
+            t.gradeText = 'Discipline kept but can improve setup/emotions';
+        } else {
+            t.grade = 'Needs Work';
+            t.gradeText = 'Keep your chin up! Every mistake is a lesson to make you a better trader.';
+        }
     }
 
     UD.forexTrades = UD.forexTrades || [];
@@ -3404,6 +3780,32 @@ async function saveForexTrade() {
     saveUD(CU.username,UD);
     closeModal('forexTradeModal');
     renderForexTable();
+}
+
+function calcForexPipsAndPLCustom(trade) {
+    const pair = trade.pair;
+    const type = trade.type;
+    const lotSize = trade.lotSize || 0;
+    const entry = trade.entry || 0;
+    const exit = trade.exit || 0;
+    
+    if (!pair || !type || !entry || !exit) return { pips: 0, pl: 0 };
+    
+    // Accurate Pip Multipliers: Gold = 10, JPY = 100, Standard = 10000
+    let multiplier = 10000;
+    if (pair === 'XAU/USD') {
+        multiplier = 10;
+    } else if (pair.includes('JPY')) {
+        multiplier = 100;
+    }
+    
+    let pips = (exit - entry) * multiplier;
+    if (type === 'Sell') {
+        pips = -pips;
+    }
+    
+    const pl = pips * lotSize * 10;
+    return { pips, pl };
 }
 
 function viewForexTradeDetails(id) {
@@ -3434,21 +3836,56 @@ function viewForexTradeDetails(id) {
     
     const thoughtsText = t.thoughts && t.thoughts.trim().length > 0 ? t.thoughts : 'No thoughts described.';
     
+    // Render lessons
+    const learnHTML = t.learn ? `
+        <div style="margin-top: 10px">
+            <h4 style="color: var(--gold); border-bottom: 2px solid var(--border); padding-bottom: 5px; margin-bottom: 10px; font-weight: 800; font-size: 14px">🎓 What I Learnt Today?</h4>
+            <div style="background: var(--card2); border: 1px solid var(--border); padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 700; color: var(--gold)"><i class="fas fa-graduation-cap" style="margin-right:6px"></i> ${t.learn}</div>
+        </div>
+    ` : '';
+
+    // Render image attachment (clickable)
+    let imageHTML = '';
+    if (t.attachedImage) {
+        imageHTML = `
+            <div style="margin-top: 10px">
+                <h4 style="color: var(--gold); border-bottom: 2px solid var(--border); padding-bottom: 5px; margin-bottom: 10px; font-weight: 800; font-size: 14px">📸 Attached Trade Screenshot</h4>
+                <div style="background: var(--card2); border: 1px solid var(--border); padding: 10px; border-radius: 10px; text-align: center">
+                    <a href="${t.attachedImage}" target="_blank">
+                        <img src="${t.attachedImage}" style="max-width: 100%; max-height: 220px; border-radius: 8px; object-fit: contain; cursor: pointer; border: 1px solid var(--gold)">
+                    </a>
+                    <p style="font-size: 10px; color: var(--text2); margin-top: 6px"><i class="fas fa-search-plus"></i> Click image to open in full size</p>
+                </div>
+            </div>
+        `;
+    } else if (t.attachedImageUrl) {
+        imageHTML = `
+            <div style="margin-top: 10px">
+                <h4 style="color: var(--gold); border-bottom: 2px solid var(--border); padding-bottom: 5px; margin-bottom: 10px; font-weight: 800; font-size: 14px">🔗 Attached Trade Link</h4>
+                <div style="background: var(--card2); border: 1px solid var(--border); padding: 12px; border-radius: 10px">
+                    <a href="${t.attachedImageUrl}" target="_blank" style="color: var(--gold); font-weight: 700; text-decoration: underline"><i class="fas fa-external-link-alt"></i> Open Attached Reference Link</a>
+                </div>
+            </div>
+        `;
+    }
+    
     container.innerHTML = `
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; background: var(--bg); padding: 15px; border-radius: 12px; border: 2px solid var(--border)">
-            <div><span style="color: var(--text2); font-size:11px">Trade #:</span> <strong style="font-size:14px; margin-left:5px">${t.number}</strong></div>
+            <div><span style="color: var(--text2); font-size:11px">Trade #:</span> <strong style="font-size:14px; margin-left:5px">${t.number}${t.hasStar ? ' ⭐' : ''}</strong></div>
             <div><span style="color: var(--text2); font-size:11px">Date:</span> <strong style="font-size:14px; margin-left:5px">${fmtDate(t.date)}</strong></div>
             <div><span style="color: var(--text2); font-size:11px">Pair / Asset:</span> <strong style="font-size:14px; margin-left:5px; color:var(--gold)">${t.pair} (${t.type})</strong></div>
             <div><span style="color: var(--text2); font-size:11px">Result:</span> <span class="badge ${badgeCls(t.result)}" style="margin-left:5px">${t.result}</span></div>
             <div><span style="color: var(--text2); font-size:11px">Pips Gained:</span> <strong style="font-size:14px; margin-left:5px">${t.pips.toFixed(1)} Pips</strong></div>
             <div><span style="color: var(--text2); font-size:11px">P&L ($):</span> <strong style="color: ${t.pl >= 0 ? 'var(--green)' : 'var(--red)'}; font-size:14px; margin-left:5px">$${t.pl.toFixed(2)}</strong></div>
-            <div><span style="color: var(--text2); font-size:11px">Score:</span> <strong style="font-size:14px; margin-left:5px">${Math.round(t.score)}/100</strong></div>
+            <div><span style="color: var(--text2); font-size:11px">Score:</span> <strong style="font-size:14px; margin-left:5px">${t.score ? Math.round(t.score) + '/100' : '-'}</strong></div>
             <div><span style="color: var(--text2); font-size:11px">Grade:</span> <span class="grade ${gradeCls(t.grade)}" style="margin-left:5px">${t.grade}</span></div>
         </div>
         <div style="margin-top: 10px">
             <h4 style="color: var(--gold); border-bottom: 2px solid var(--border); padding-bottom: 5px; margin-bottom: 10px; font-weight: 800; font-size: 14px">💭 Thoughts & Checklist Description</h4>
             <div style="background: var(--card3); padding: 15px; border-radius: 10px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; color: var(--text); border: 1px dashed var(--border)">${thoughtsText}</div>
         </div>
+        ${learnHTML}
+        ${imageHTML}
         ${customFieldsHTML}
     `;
     
@@ -3798,6 +4235,75 @@ function saveCustomDbUri() {
     window.location.reload();
 }
 
+// ----------------------------------------------------
+// SMART RISK PLANNER JS CALCULATORS
+// ----------------------------------------------------
+
+function showRiskTab(el, tabId) {
+    document.querySelectorAll('.risk-tab').forEach(t => t.style.display = 'none');
+    document.querySelectorAll('#riskTabBar .tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).style.display = '';
+    el.classList.add('active');
+}
+
+function calcIndianRisk() {
+    const entry = +document.getElementById('irEntry').value || 0;
+    const sl = +document.getElementById('irSL').value || 0;
+    const maxLoss = +document.getElementById('irMaxLoss').value || 0;
+    
+    if (entry && sl) {
+        const riskPoints = Math.abs(entry - sl);
+        document.getElementById('irPointDistance', 'irCalcSL').textContent = '₹' + riskPoints.toFixed(2);
+        document.getElementById('irCalcSL').textContent = '₹' + riskPoints.toFixed(2);
+        
+        if (maxLoss > 0 && riskPoints > 0) {
+            const recQty = Math.floor(maxLoss / riskPoints);
+            document.getElementById('irCalcQty').textContent = recQty.toLocaleString('en-IN') + ' Shares';
+        } else {
+            document.getElementById('irCalcQty').textContent = '-';
+        }
+    } else {
+        document.getElementById('irCalcSL').textContent = '₹0.00';
+        document.getElementById('irCalcQty').textContent = '-';
+    }
+}
+
+function calcForexRisk() {
+    const pair = document.getElementById('frPair').value;
+    const entry = +document.getElementById('frEntry').value || 0;
+    const sl = +document.getElementById('frSL').value || 0;
+    const maxLoss = +document.getElementById('frMaxLoss').value || 0;
+    
+    if (entry && sl && pair) {
+        // Accurate Pip Multipliers: Gold = 10, JPY = 100, Standard = 10000
+        let multiplier = 10000;
+        if (pair === 'XAU/USD') {
+            multiplier = 10;
+        } else if (pair.includes('JPY')) {
+            multiplier = 100;
+        }
+        
+        const pipsDistance = Math.abs(entry - sl) * multiplier;
+        document.getElementById('frCalcPips').textContent = pipsDistance.toFixed(1) + ' Pips';
+        
+        // Risk @ 0.01 Lots = Pips * 0.01 * $10 = Pips * $0.10
+        const risk01 = pipsDistance * 0.10;
+        document.getElementById('frCalcRisk01').textContent = '$' + risk01.toFixed(2);
+        
+        if (maxLoss > 0 && pipsDistance > 0) {
+            // Recommended Lots = MaxLoss / (Pips * 10)
+            const recLots = maxLoss / (pipsDistance * 10);
+            document.getElementById('frCalcLots').textContent = recLots.toFixed(2) + ' Lots';
+        } else {
+            document.getElementById('frCalcLots').textContent = '-';
+        }
+    } else {
+        document.getElementById('frCalcPips').textContent = '0.0 Pips';
+        document.getElementById('frCalcRisk01').textContent = '$0.00';
+        document.getElementById('frCalcLots').textContent = '-';
+    }
+}
+
 /* ============================================================
    INIT
    ============================================================ */
@@ -3894,6 +4400,17 @@ document.addEventListener('DOMContentLoaded', async function(){
                 </div>
                 <div class="form-group"><label>Emotion</label><select id="fEmotion" required><option value="">Select</option></select></div>
                 <div class="form-group" style="grid-column: span 2"><label>Mistake</label><select id="fMistake"><option value="">No Mistake</option></select></div>
+                <div class="form-group" style="grid-column: span 2"><label>What I Learnt Today?</label><select id="fLearn"><option value="">Select Lesson</option></select></div>
+                
+                <!-- Forex Trade Image/Screenshot attachment -->
+                <div class="form-group" style="grid-column: span 2; background: var(--card3); border: 1px dashed var(--border); padding: 15px; border-radius: 12px; margin-top: 10px; width:100%">
+                    <label style="color: var(--gold); font-weight: 700; margin-bottom:6px"><i class="fas fa-image" style="margin-right:6px"></i> Attach Forex Chart / Screenshot</label>
+                    <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:10px; margin-top: 5px; width:100%">
+                        <div class="form-group" style="margin-bottom:0"><label style="font-size:10px">Upload File</label><input type="file" id="fImageUpload" accept="image/*" onchange="handleTradeImageUpload(event, 'f')" style="width:100%"></div>
+                        <div class="form-group" style="margin-bottom:0"><label style="font-size:10px">Or Paste Image Link</label><input type="text" id="fImageUrl" placeholder="https://..." oninput="handleTradeImageUrlInput('f')" style="width:100%"></div>
+                    </div>
+                    <div id="fImagePreview" style="display:none; margin-top:10px; position:relative; width:100%; height:120px; border-radius:8px; overflow:hidden; border:2px solid var(--border)"></div>
+                </div>
             </div>
             
             <div class="form-group full" style="margin-top:18px">

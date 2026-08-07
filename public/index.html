@@ -664,8 +664,16 @@
         <!-- Indian Risk Calculator -->
         <div id="riskIndian" class="risk-tab">
             <div class="table-card" style="max-width:600px">
-                <h3 style="margin-bottom:15px; color:var(--gold)"><i class="fas fa-flag" style="margin-right:6px"></i> Indian Share Position Sizer</h3>
-                <div class="form-group"><label>Stock / Index Name</label><input type="text" id="irStock" placeholder="e.g. Reliance, Nifty F&O"></div>
+                <h3 style="margin-bottom:15px; color:var(--gold)"><i class="fas fa-flag" style="margin-right:6px"></i> Indian Index Options Position Sizer</h3>
+                
+                <div class="form-group">
+                    <label>Select Index (Lot size configured in backend)</label>
+                    <select id="irIndex" style="width:100%" onchange="calcIndianRisk()">
+                        <option value="25">Nifty 50 (Lot Size: 25)</option>
+                        <option value="15">Bank Nifty (Lot Size: 15)</option>
+                    </select>
+                </div>
+                
                 <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:15px">
                     <div class="form-group"><label>Entry Price (₹)</label><input type="number" id="irEntry" step="0.01" placeholder="0.00" oninput="calcIndianRisk()"></div>
                     <div class="form-group"><label>Stop Loss (₹)</label><input type="number" id="irSL" step="0.01" placeholder="0.00" oninput="calcIndianRisk()"></div>
@@ -675,9 +683,10 @@
                 <!-- Calculations display -->
                 <div class="auto-calc-box" style="margin-top:20px">
                     <div class="auto-calc-title">📊 Indian Risk Summary</div>
-                    <div class="auto-calc-grid" style="grid-template-columns:1fr 1fr">
+                    <div class="auto-calc-grid" style="grid-template-columns:1fr 1fr 1fr">
                         <div class="auto-calc-item"><div class="lbl">SL Distance (Points)</div><div class="val" id="irCalcSL">₹0.00</div></div>
-                        <div class="auto-calc-item" style="border: 2px solid var(--gold); border-radius:10px; padding: 10px"><div class="lbl" style="color:var(--gold)">Recommended Quantity</div><div class="val" id="irCalcQty" style="color:var(--gold); font-size:20px; font-weight:900">-</div></div>
+                        <div class="auto-calc-item"><div class="lbl">Risk @ 1 Lot</div><div class="val" id="irCalcRisk01">₹0.00</div></div>
+                        <div class="auto-calc-item" style="border: 2px solid var(--gold); border-radius:10px; padding: 10px"><div class="lbl" style="color:var(--gold)">Recommended Lots</div><div class="val" id="irCalcQty" style="color:var(--gold); font-size:20px; font-weight:900">-</div></div>
                     </div>
                 </div>
             </div>
@@ -2644,11 +2653,11 @@ function editAdminUser(i){
 function renderPermGrid(access){
     // Indian Market is default active for everyone. We map LOCKABLE directly which includes Forex Premium!
     const html = LOCKABLE.map(f=>`
-        <div class="perm-item" style="background: var(--bg); border: 1px solid var(--border); padding: 10px 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px">
+        <div class="perm-item" style="background: var(--bg); border: 2px solid var(--border); padding: 12px 18px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px">
             <span><i class="fas ${f.icon}" style="color:var(--gold);margin-right:8px"></i><strong>${f.label}</strong></span>
-            <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 20px;">
-                <input type="checkbox" id="perm_${f.key}" ${access[f.key]?'checked':''} style="opacity: 0; width: 0; height: 0;">
-                <span class="toggle-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border); transition: .3s; border-radius: 20px;"></span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="perm_${f.key}" ${access[f.key]?'checked':''}>
+                <span class="toggle-slider"></span>
             </label>
         </div>
     `).join('');
@@ -4253,20 +4262,25 @@ function calcIndianRisk() {
     const entry = +document.getElementById('irEntry').value || 0;
     const sl = +document.getElementById('irSL').value || 0;
     const maxLoss = +document.getElementById('irMaxLoss').value || 0;
+    const lotSize = +document.getElementById('irIndex').value || 25;
     
     if (entry && sl) {
         const riskPoints = Math.abs(entry - sl);
-        document.getElementById('irPointDistance', 'irCalcSL').textContent = '₹' + riskPoints.toFixed(2);
         document.getElementById('irCalcSL').textContent = '₹' + riskPoints.toFixed(2);
         
-        if (maxLoss > 0 && riskPoints > 0) {
-            const recQty = Math.floor(maxLoss / riskPoints);
-            document.getElementById('irCalcQty').textContent = recQty.toLocaleString('en-IN') + ' Shares';
+        const riskPerLot = riskPoints * lotSize;
+        document.getElementById('irCalcRisk01').textContent = '₹' + riskPerLot.toFixed(2);
+        
+        if (maxLoss > 0 && riskPerLot > 0) {
+            const recLots = maxLoss / riskPerLot;
+            const recShares = Math.floor(recLots * lotSize);
+            document.getElementById('irCalcQty').textContent = recLots.toFixed(2) + ' Lots (' + recShares + ' Shares)';
         } else {
             document.getElementById('irCalcQty').textContent = '-';
         }
     } else {
         document.getElementById('irCalcSL').textContent = '₹0.00';
+        document.getElementById('irCalcRisk01').textContent = '₹0.00';
         document.getElementById('irCalcQty').textContent = '-';
     }
 }

@@ -562,6 +562,35 @@
                 <button class="btn btn-gold" style="margin-top:10px" onclick="changePassword()"><i class="fas fa-key"></i> Change Password</button>
             </div>
         </div>
+        
+        <!-- Admin Database Tab Content -->
+        <div id="setDb" class="settings-tab" style="display:none">
+            <div class="table-card" style="max-width:650px">
+                <h3 style="margin-bottom:15px; color:var(--gold)">🛢️ Custom Cloud Database Manager</h3>
+                <p style="font-size:12px; color:var(--text2); margin-bottom:15px">Select your database type, paste your cloud connection string, and test the connection to link your journal to your private cloud instantly!</p>
+                
+                <div class="form-group">
+                    <label>Database Connection Type</label>
+                    <select id="customDbDbType" style="width:100%" onchange="updateDbPlaceholder()">
+                        <option value="postgres">🐘 Supabase / PostgreSQL (SQL)</option>
+                        <option value="mongodb">🍃 MongoDB Atlas (NoSQL)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Database Connection URI / String</label>
+                    <textarea id="customDbUriInput" rows="3" placeholder="Paste your connection string here..."></textarea>
+                </div>
+                
+                <!-- Connection Test Status Box -->
+                <div id="dbTestStatusBox" class="table-card" style="display:none; padding:15px; margin-bottom:15px; font-weight:700; font-size:12px; border-radius:10px"></div>
+                
+                <div style="display:flex; gap:10px; flex-wrap:wrap">
+                    <button class="btn btn-secondary" id="btnTestDb" onclick="testCustomDbConnection()"><i class="fas fa-plug"></i> Test Connection</button>
+                    <button class="btn btn-gold" id="btnSaveDb" onclick="saveCustomDbUri()" disabled><i class="fas fa-save"></i> Save & Connect Database</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ADMIN: USER MANAGEMENT -->
@@ -852,6 +881,17 @@
 <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('mobile-hidden')"><i class="fas fa-bars"></i></button>
 
 <script>
+// INTERCEPT GLOBAL FETCH TO DYNAMICALLY ROUTE TO ADMIN CUSTOM DATABASE
+const originalFetch = window.fetch;
+window.fetch = function (url, options = {}) {
+    const customUri = localStorage.getItem('t1p_custom_db_uri');
+    if (customUri && customUri.trim().length > 0) {
+        options.headers = options.headers || {};
+        options.headers['X-Database-URI'] = customUri;
+    }
+    return originalFetch(url, options);
+};
+
 /* ============================================================
    GLOBAL STATE
    ============================================================ */
@@ -2684,6 +2724,103 @@ function getYouTubeId(url) {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?\??v=([^#\&\?]*))/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
+}
+
+function updateDbPlaceholder() {
+    const dbType = document.getElementById('customDbDbType').value;
+    const input = document.getElementById('customDbUriInput');
+    if (dbType === 'mongodb') {
+        input.placeholder = "e.g. mongodb+srv://dbuser:Password@trade.xxxx.mongodb.net/?appName=trade";
+    } else {
+        input.placeholder = "e.g. postgres://postgres.xugyciwqfnxfqiagymat:Password@aws-0-ap-south-1.pooler.supabase.com:6543/postgres";
+    }
+    // Disable save button when they change input/selection until they test successfully
+    document.getElementById('btnSaveDb').disabled = true;
+    document.getElementById('dbTestStatusBox').style.display = 'none';
+}
+
+// Bind direct text input monitoring to disable save until tested
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('customDbUriInput');
+    if (input) {
+        input.addEventListener('input', () => {
+            document.getElementById('btnSaveDb').disabled = true;
+            document.getElementById('dbTestStatusBox').style.display = 'none';
+        });
+    }
+});
+
+async function testCustomDbConnection() {
+    const dbType = document.getElementById('customDbDbType').value;
+    const uri = document.getElementById('customDbUriInput').value.trim();
+    const statusBox = document.getElementById('dbTestStatusBox');
+    const btnTest = document.getElementById('btnTestDb');
+    const btnSave = document.getElementById('btnSaveDb');
+    
+    if (!uri) { alert('Please paste a connection string first!'); return; }
+    
+    // Validate schema format
+    if (dbType === 'mongodb' && !uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
+        alert('❌ Invalid format! A MongoDB connection string must start with "mongodb://" or "mongodb+srv://"');
+        return;
+    }
+    if (dbType === 'postgres' && !uri.startsWith('postgresql://') && !uri.startsWith('postgres://')) {
+        alert('❌ Invalid format! A Supabase connection string must start with "postgres://" or "postgresql://"');
+        return;
+    }
+    
+    // Show loading status
+    btnTest.disabled = true;
+    btnTest.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing connection...';
+    statusBox.style.display = 'block';
+    statusBox.style.background = 'var(--card2)';
+    statusBox.style.border = '1px solid var(--border)';
+    statusBox.style.color = 'var(--text2)';
+    statusBox.innerHTML = '<i class="fas fa-plug fa-spin" style="color:var(--gold); margin-right:6px"></i> Attempting secure database connection handshake...';
+    
+    try {
+        const response = await fetch('/api/debug-db/test', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-Database-URI': uri 
+            },
+            body: JSON.stringify({ uri: uri })
+        });
+        const resData = await response.json();
+        
+        if (response.ok && resData.success) {
+            statusBox.style.background = 'rgba(16,185,129,0.1)';
+            statusBox.style.border = '1px solid var(--green)';
+            statusBox.style.color = 'var(--green)';
+            statusBox.innerHTML = `🟢 CONNECTION SUCCESSFUL!<br><span style="font-weight:400; font-size:11px; margin-top:4px; display:inline-block">${resData.message}</span>`;
+            btnSave.disabled = false; // Enable saving!
+        } else {
+            statusBox.style.background = 'rgba(239,68,68,0.1)';
+            statusBox.style.border = '1px solid var(--red)';
+            statusBox.style.color = 'var(--red)';
+            statusBox.innerHTML = `🔴 CONNECTION FAILED!<br><span style="font-weight:400; font-size:11px; margin-top:4px; display:inline-block">Error: ${resData.error || 'Connection timed out or credentials rejected.'}</span>`;
+            btnSave.disabled = true;
+        }
+    } catch (err) {
+        statusBox.style.background = 'rgba(239,68,68,0.1)';
+        statusBox.style.border = '1px solid var(--red)';
+        statusBox.style.color = 'var(--red)';
+        statusBox.innerHTML = `🔴 NETWORK ERROR!<br><span style="font-weight:400; font-size:11px; margin-top:4px; display:inline-block">Could not communicate with Vercel: ${err.message}</span>`;
+        btnSave.disabled = true;
+    } finally {
+        btnTest.disabled = false;
+        btnTest.innerHTML = '<i class="fas fa-plug"></i> Test Connection';
+    }
+}
+
+function saveCustomDbUri() {
+    const type = document.getElementById('customDbDbType').value;
+    const uri = document.getElementById('customDbUriInput').value.trim();
+    localStorage.setItem('t1p_custom_db_type', type);
+    localStorage.setItem('t1p_custom_db_uri', uri);
+    alert('✅ Cloud Database settings saved successfully! Reconnecting to your private database...');
+    window.location.reload();
 }
 
 /* ============================================================

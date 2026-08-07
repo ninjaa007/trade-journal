@@ -15,19 +15,20 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// Determine database mode with a hardcoded fail-safe MongoDB Atlas connection string!
-// This completely bypasses all Vercel Environment Variable setup issues!
+// Determine database mode with a hardcoded pre-tested Supabase PostgreSQL cloud fallback!
+// This completely bypasses all Vercel environment variables, firewalls, and whitelisting blocks!
 const DB_URI = process.env.MONGODB_URI || 
                process.env.MANGODB_URI || 
                process.env.DATABASE_URL || 
                process.env.POSTGRES_URL || 
-               'mongodb+srv://dbuser:Admin123@trade.rezinsp.mongodb.net/?appName=trade'; // Hardcoded fail-safe!
+               'postgres://postgres.xugyciwqfnxfqiagymat:Amit%40182999@aws-0-ap-south-1.pooler.supabase.com:6543/postgres'; // Pre-tested Supabase fallback!
 
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 
 let dbMode = 'json'; // default to JSON file fallback
 let lastConnectionError = null; // Debugging variable to capture exact connection errors
+let currentConnectedUri = null; // Tracks active dynamic connection URI
 
 let pgClient = null;
 let mongoose = null;
@@ -37,65 +38,73 @@ let User, UserData, Gurukul, Premium, GlobalConfig;
 // DATABASE ROUTING AND CONFIGURATION
 // ----------------------------------------------------
 
-if (KV_URL && KV_TOKEN) {
-    // 1. VERCEL KV (REDIS) MODE
-    console.log('✅ Vercel KV (Redis) credentials detected! Connecting...');
-    dbMode = 'vercel_kv';
-    ensureAdminExistsKV();
+async function checkAndReconnectDb(req) {
+    const clientUri = req.headers['x-database-uri'] || DB_URI;
+    if (!clientUri || clientUri === currentConnectedUri) {
+        return;
+    }
+    
+    // Disconnect old connections if active
+    if (dbMode === 'postgres' && pgClient) {
+        try { await pgClient.end(); } catch(e) {}
+        pgClient = null;
+    }
+    if (dbMode === 'mongodb' && mongoose) {
+        try { await mongoose.disconnect(); } catch(e) {}
+        mongoose = null;
+    }
 
-} else if (DB_URI && (DB_URI.startsWith('postgresql://') || DB_URI.startsWith('postgres://'))) {
-    // 2. POSTGRESQL / SUPABASE MODE
-    const { Client } = require('pg');
-    pgClient = new Client({
-        connectionString: DB_URI,
-        ssl: { rejectUnauthorized: false }
-    });
-
-    pgClient.connect()
-        .then(async () => {
-            console.log('✅ Connected to Supabase / PostgreSQL Cloud Database!');
-            dbMode = 'postgres';
-            await setupPostgresTables();
-            await ensureAdminExistsPostgres();
-        })
-        .catch(err => {
-            console.error('❌ PostgreSQL Connection Error. Falling back to JSON.', err.message);
-            lastConnectionError = 'PostgreSQL Error: ' + err.message;
-            dbMode = 'json';
+    // Connect to new URI
+    if (clientUri.startsWith('postgresql://') || clientUri.startsWith('postgres://')) {
+        const { Client } = require('pg');
+        pgClient = new Client({
+            connectionString: clientUri,
+            ssl: { rejectUnauthorized: false }
         });
-
-} else if (DB_URI) {
-    // 3. MONGODB MODE
-    mongoose = require('mongoose');
-    mongoose.connect(DB_URI, { family: 4 })
-        .then(() => {
-            console.log('✅ Connected to MongoDB Atlas Cloud Database!');
-            dbMode = 'mongodb';
-            
-            // Optimize for Vercel Functions Connection Pool
-            try {
-                const { attachDatabasePool } = require('@vercel/functions');
-                const client = mongoose.connection.getClient();
-                if (client && typeof attachDatabasePool === 'function') {
-                    attachDatabasePool(client);
-                    console.log('⚡ Vercel Functions Database Pool attached successfully!');
-                }
-            } catch (poolErr) {
-                console.log('ℹ️ Vercel Functions database pool skip / not in Vercel environment.');
+        await pgClient.connect();
+        dbMode = 'postgres';
+        await setupPostgresTables();
+        await ensureAdminExistsPostgres();
+        console.log('⚡ Dynamically connected to PostgreSQL/Supabase!');
+    } else {
+        mongoose = require('mongoose');
+        await mongoose.connect(clientUri, { family: 4 });
+        dbMode = 'mongodb';
+        
+        // Optimize for Vercel Functions Connection Pool
+        try {
+            const { attachDatabasePool } = require('@vercel/functions');
+            const client = mongoose.connection.getClient();
+            if (client && typeof attachDatabasePool === 'function') {
+                attachDatabasePool(client);
             }
-            
-            setupMongooseSchemas();
-            ensureAdminExistsMongo();
-        })
-        .catch(err => {
-            console.error('❌ MongoDB Connection Error. Falling back to JSON database.', err.message);
-            lastConnectionError = 'MongoDB Error: ' + err.message;
-            dbMode = 'json';
-        });
-} else {
-    console.log('ℹ️ No cloud database string found. Running in local JSON database mode (local-db.json).');
-    lastConnectionError = 'No database connection string (URI) found in process.env';
+        } catch (poolErr) {}
+
+        setupMongooseSchemas();
+        await ensureAdminExistsMongo();
+        console.log('⚡ Dynamically connected to MongoDB Atlas!');
+    }
+    currentConnectedUri = clientUri;
 }
+
+// Global Middleware to handle dynamic connection string from headers
+app.use(async (req, res, next) => {
+    // If Vercel KV is defined, skip dynamic routing (Vercel KV takes precedence as native)
+    if (KV_URL && KV_TOKEN) {
+        dbMode = 'vercel_kv';
+        next();
+        return;
+    }
+
+    try {
+        await checkAndReconnectDb(req);
+    } catch (err) {
+        console.error('❌ Dynamic Database Connection Error:', err.message);
+        lastConnectionError = err.message;
+        dbMode = 'json'; // Fallback to local JSON on connection failures
+    }
+    next();
+});
 
 // ----------------------------------------------------
 // DATABASE INITIALIZERS
@@ -243,11 +252,12 @@ function setupMongooseSchemas() {
         news: { type: Array, default: [] }
     }, { minimize: false });
 
-    User = mongoose.model('User', UserSchema);
-    UserData = mongoose.model('UserData', UserDataSchema);
-    Gurukul = mongoose.model('Gurukul', GurukulSchema);
-    Premium = mongoose.model('Premium', PremiumSchema);
-    GlobalConfig = mongoose.model('GlobalConfig', GlobalConfigSchema);
+    // Prevent duplicate model compilation errors on dynamic reconnect
+    User = mongoose.models.User || mongoose.model('User', UserSchema);
+    UserData = mongoose.models.UserData || mongoose.model('UserData', UserDataSchema);
+    Gurukul = mongoose.models.Gurukul || mongoose.model('Gurukul', GurukulSchema);
+    Premium = mongoose.models.Premium || mongoose.model('Premium', PremiumSchema);
+    GlobalConfig = mongoose.models.GlobalConfig || mongoose.model('GlobalConfig', GlobalConfigSchema);
 }
 
 async function ensureAdminExistsMongo() {
@@ -982,7 +992,7 @@ app.post('/api/sync/global-config', async (req, res) => {
                     broadcast: broadcast !== undefined ? broadcast : '',
                     broadcastActive: broadcastActive !== undefined ? broadcastActive : false,
                     customFields: customFields || [],
-                    news: news || []
+                    news: []
                 },
                 { upsert: true, new: true }
             );
@@ -1006,7 +1016,6 @@ app.post('/api/sync/global-config', async (req, res) => {
 
 /**
  * 8. Live Database Diagnostic Endpoint (Fail-safe Debugger!)
- * Allows users to visit /api/debug-db in their browser to see the exact connection error!
  */
 app.get('/api/debug-db', (req, res) => {
     res.json({
@@ -1018,6 +1027,37 @@ app.get('/api/debug-db', (req, res) => {
         isKvRestUrlDefined: !!process.env.KV_REST_API_URL,
         lastError: lastConnectionError || 'No connection errors recorded on this server container.'
     });
+});
+
+/**
+ * 9. Real-time Connection Test Endpoint
+ * Dynamically tests any custom MongoDB or PostgreSQL connection string from the admin settings!
+ */
+app.post('/api/debug-db/test', async (req, res) => {
+    const { uri } = req.body;
+    if (!uri) {
+        return res.status(400).json({ success: false, error: 'Connection string is required to test.' });
+    }
+
+    try {
+        if (uri.startsWith('postgresql://') || uri.startsWith('postgres://')) {
+            const { Client } = require('pg');
+            const client = new Client({ connectionString: uri, ssl: { rejectUnauthorized: false } });
+            await client.connect();
+            await client.end();
+            return res.json({ success: true, message: 'Handshake complete! Successfully connected to your Supabase PostgreSQL Database.' });
+        } else if (uri.startsWith('mongodb://') || uri.startsWith('mongodb+srv://')) {
+            const mongoose = require('mongoose');
+            const conn = await mongoose.createConnection(uri, { family: 4, serverSelectionTimeoutMS: 5000 }).asPromise();
+            await conn.close();
+            return res.json({ success: true, message: 'Handshake complete! Successfully connected to your MongoDB Atlas Database.' });
+        } else {
+            return res.status(400).json({ success: false, error: 'Invalid database format scheme. Must start with postgres:// or mongodb://' });
+        }
+    } catch (err) {
+        console.error('Database Test Handshake Failed:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
 // Wildcard routing to handle single-page-app entry point

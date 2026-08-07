@@ -742,7 +742,7 @@
             <div class="stats-grid" id="reportStats"></div>
             <div class="table-card">
                 <h3 style="margin-bottom:15px">Indian Market - Complete Trade Log</h3>
-                <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Setup</th><th>Entry</th><th>SL</th><th>Target</th><th>Exit</th><th>P&amp;L</th><th>Result</th><th>Emotion</th><th>Mistake</th><th>Score</th><th>Grade</th><th>Actions</th></tr></thead><tbody id="reportTable"></tbody></table></div>
+                <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Setup</th><th>Entry</th><th>SL</th><th>Target</th><th>Exit</th><th>P&amp;L</th><th>Result</th><th>Emotion</th><th>Mistake</th><th>What I Learnt</th><th>Score</th><th>Grade</th><th>Actions</th></tr></thead><tbody id="reportTable"></tbody></table></div>
             </div>
         </div>
         
@@ -758,7 +758,7 @@
             <div class="stats-grid" id="forexReportStats"></div>
             <div class="table-card">
                 <h3 style="margin-bottom:15px">Forex Market - Complete Trade Log</h3>
-                <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Pair</th><th>Type</th><th>Lot Size</th><th>Entry</th><th>SL</th><th>Target</th><th>Exit</th><th>Pips</th><th>P&amp;L ($)</th><th>Result</th><th>Score</th><th>Grade</th><th>Actions</th></tr></thead><tbody id="forexReportTable"></tbody></table></div>
+                <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Pair</th><th>Type</th><th>Lot Size</th><th>Entry</th><th>SL</th><th>Target</th><th>Exit</th><th>Pips</th><th>P&amp;L ($)</th><th>Result</th><th>What I Learnt</th><th>Score</th><th>Grade</th><th>Actions</th></tr></thead><tbody id="forexReportTable"></tbody></table></div>
             </div>
         </div>
     </div>
@@ -1474,46 +1474,52 @@ function updateSidebar(){
 function buildNav(){
     const nav=document.getElementById('navMenu');
     const access=CU.access||{};
-    let items=[];
-    items.push({key:'dashboard',label:'Dashboard',icon:'fa-chart-line'});
-    items.push({key:'journal',label:'Trading Journal',icon:'fa-book'});
-    items.push({key:'analytics',label:'Analytics',icon:'fa-chart-pie'});
-    items.push({key:'reports',label:'Reports',icon:'fa-file-alt'});
-    items.push({key:'settings',label:'Settings',icon:'fa-cog'});
     
-    // Add News & Trends for everyone
+    // News unread counts
     const unreadCount = Math.max(0, (CACHED_GLOBAL_CONFIG.news || []).length - (UD && UD.lastReadNewsCount !== undefined ? UD.lastReadNewsCount : 0));
     const badgeHTML = unreadCount > 0 ? `<span class="notification-badge" style="background:var(--red);color:#fff;border-radius:50%;padding:2px 8px;font-size:10px;margin-left:auto;font-weight:900;box-shadow:0 0 10px rgba(239,68,68,0.5)">${unreadCount}</span>` : '';
-    items.push({key:'news',label:'News & Trends',icon:'fa-newspaper',badge: badgeHTML});
 
-    if(CU.role==='admin'){
-        // Admins get compounding, gurukul, live charts fully unlocked
-        items.push({key:'compounding',label:'Compounding Engine',icon:'fa-rocket'});
-        items.push({key:'gurukul',label:'Gurukul (Knowledge)',icon:'fa-book-open'});
-        items.push({key:'tradingview_charts',label:'Live Charts',icon:'fa-chart-area'});
-        
-        items.push({key:'adminUsers',label:'User Management',icon:'fa-users-cog',admin:true});
-        items.push({key:'adminReports',label:'Admin Reports',icon:'fa-file-medical',admin:true});
-        items.push({key0:'adminViewUser',key:'adminViewUser',label:'User Data Inspector',icon:'fa-search',admin:true});
-        items.push({key:'adminGurukul',label:'Gurukul Manager',icon:'fa-chalkboard-teacher',admin:true});
-        items.push({key:'adminPremium',label:'Premium Message',icon:'fa-envelope-open-text',admin:true});
-        
-        // Admin Management Tabs for our new features
-        items.push({key:'adminCustomFields',label:'Journal Custom Fields',icon:'fa-list-ul',admin:true});
-        items.push({key:'adminNews',label:'Post News & Trends',icon:'fa-edit',admin:true});
-        items.push({key:'adminBroadcast',label:'Broadcast Message',icon:'fa-bullhorn',admin:true});
-    } else {
-        LOCKABLE.forEach(f=>{
-            items.push({key:f.key,label:f.label,icon:f.icon,lockable:true,locked:!access[f.key]});
-        });
-    }
+    // Standard items list in the exact requested sequence!
+    const standardItems = [
+        { key: 'dashboard', label: 'Dashboard', icon: 'fa-chart-line' },
+        { key: 'journal', label: 'Trading Journal', icon: 'fa-book' },
+        { key: 'risk_planner', label: 'Smart Risk Planner', icon: 'fa-calculator', lockable: true, locked: CU.role !== 'admin' && !access.risk_planner },
+        { key: 'analytics', label: 'Analytics', icon: 'fa-chart-pie' },
+        { key: 'compounding', label: 'Compounding Engine', icon: 'fa-rocket', lockable: true, locked: CU.role !== 'admin' && !access.compounding },
+        { key: 'news', label: 'News & Trends', icon: 'fa-newspaper', badge: badgeHTML },
+        { key: 'gurukul', label: 'Gurukul', icon: 'fa-book-open', lockable: true, locked: CU.role !== 'admin' && !access.gurukul },
+        { key: 'tradingview_charts', label: 'Live Charts', icon: 'fa-chart-area', lockable: true, locked: CU.role !== 'admin' && !access.tradingview_charts },
+        { key: 'reports', label: 'Reports', icon: 'fa-file-alt' },
+        { key: 'settings', label: 'Settings', icon: 'fa-cog' }
+    ];
 
-    nav.innerHTML=items.map(it=>{
-        const cls=it.locked?'':'nav-link';
-        const lockBadge=it.locked?'<span class="lock-badge"><i class="fas fa-lock"></i></span>':'';
+    let html = '';
+    
+    // Render standard items
+    html += standardItems.map(it => {
+        const lockBadge = it.locked ? '<span class="lock-badge"><i class="fas fa-lock"></i></span>' : '';
         const badge = it.badge ? it.badge : '';
         return `<li class="nav-item"><a class="nav-link" data-page="${it.key}" data-locked="${!!it.locked}" onclick="navClick(this,'${it.key}',${!!it.locked})"><i class="fas ${it.icon}"></i><span>${it.label}</span>${badge}${lockBadge}</a></li>`;
     }).join('');
+
+    // If Admin, render Digital Manager and User Manager sub-menus with elegant section headers!
+    if (CU.role === 'admin') {
+        html += `
+            <div style="font-size: 10px; color: var(--text2); font-weight: 800; padding: 15px 16px 8px; text-transform: uppercase; letter-spacing: 1px; border-top: 1px solid var(--border); margin-top: 10px"><i class="fas fa-laptop-code" style="margin-right:6px"></i> Digital Manager</div>
+            <li class="nav-item"><a class="nav-link" data-page="adminNews" onclick="navClick(this,'adminNews',false)"><i class="fas fa-edit"></i><span>Post, News & Trends</span></a></li>
+            <li class="nav-item"><a class="nav-link" data-page="adminBroadcast" onclick="navClick(this,'adminBroadcast',false)"><i class="fas fa-bullhorn"></i><span>Broadcast Message</span></a></li>
+            <li class="nav-item"><a class="nav-link" data-page="adminPremium" onclick="navClick(this,'adminPremium',false)"><i class="fas fa-envelope-open-text"></i><span>Premium Message</span></a></li>
+            <li class="nav-item"><a class="nav-link" data-page="adminGurukul" onclick="navClick(this,'adminGurukul',false)"><i class="fas fa-chalkboard-teacher"></i><span>Gurukul Manager</span></a></li>
+            <li class="nav-item"><a class="nav-link" data-page="adminCustomFields" onclick="navClick(this,'adminCustomFields',false)"><i class="fas fa-list-ul"></i><span>Journal Custom Fields</span></a></li>
+            
+            <div style="font-size: 10px; color: var(--text2); font-weight: 800; padding: 15px 16px 8px; text-transform: uppercase; letter-spacing: 1px; border-top: 1px solid var(--border); margin-top: 10px"><i class="fas fa-users-cog" style="margin-right:6px"></i> User Manager</div>
+            <li class="nav-item"><a class="nav-link" data-page="adminUsers" onclick="navClick(this,'adminUsers',false)"><i class="fas fa-users-cog"></i><span>User Management</span></a></li>
+            <li class="nav-item"><a class="nav-link" data-page="adminReports" onclick="navClick(this,'adminReports',false)"><i class="fas fa-file-medical"></i><span>Admin Reports</span></a></li>
+            <li class="nav-item"><a class="nav-link" data-page="adminViewUser" onclick="navClick(this,'adminViewUser',false)"><i class="fas fa-search"></i><span>User Data Inspector</span></a></li>
+        `;
+    }
+
+    nav.innerHTML = html;
 }
 
 function navClick(el,page,locked){
@@ -2349,6 +2355,7 @@ function refreshReports(){
             <td>${t.number}${starHTML}</td><td>${fmtDate(t.date)}</td><td>${t.setup}</td><td>${t.entry}</td><td>${t.sl}</td><td>${t.target}</td><td>${t.exit}</td>
             <td style="color:${t.pl>=0?'var(--green)':'var(--red)'}">${t.pl.toFixed(2)}</td>
             <td><span class="badge ${badgeCls(t.result)}">${t.result}</span></td><td>${t.emotion}</td><td>${t.mistake||'-'}</td>
+            <td>${t.learn || '-'}</td>
             <td>${t.score ? Math.round(t.score) : '-'}</td><td><span class="grade ${gradeCls(t.grade)}">${t.grade}</span></td>
             <td><button class="btn btn-blue btn-sm" onclick="viewTradeDetails(${t.id})" style="padding: 6px 10px; font-size: 11px;"><i class="fas fa-eye"></i></button></td>
         </tr>`;
@@ -2377,7 +2384,9 @@ function refreshReports(){
         return `<tr>
             <td style="font-weight:700">${t.number}${starHTML}</td><td>${fmtDate(t.date)}</td><td style="color:var(--gold);font-weight:700">${t.pair}</td><td><span class="badge ${t.type==='Buy'?'win':'loss'}">${t.type}</span></td><td>${t.lotSize}</td><td>${t.entry}</td><td>${t.sl}</td><td>${t.target}</td><td>${t.exit}</td><td>${t.pips.toFixed(1)}</td>
             <td style="color:${t.pl>=0?'var(--green)':'var(--red)'};font-weight:700">$${t.pl.toFixed(2)}</td>
-            <td><span class="badge ${badgeCls(t.result)}">${t.result}</span></td><td>${t.score ? Math.round(t.score) : '-'}</td><td><span class="grade ${gradeCls(t.grade)}">${t.grade}</span></td>
+            <td><span class="badge ${badgeCls(t.result)}">${t.result}</span></td>
+            <td>${t.learn || '-'}</td>
+            <td>${t.score ? Math.round(t.score) : '-'}</td><td><span class="grade ${gradeCls(t.grade)}">${t.grade}</span></td>
             <td><button class="btn btn-blue btn-sm" onclick="viewForexTradeDetails(${t.id})" style="padding: 6px 10px; font-size: 11px;"><i class="fas fa-eye"></i></button></td>
         </tr>`;
     }).join('');
@@ -2633,20 +2642,14 @@ function editAdminUser(i){
 }
 
 function renderPermGrid(access){
-    // Automatically make Indian Market true if not set
-    const indianMarketChecked = access.indian_market !== undefined ? access.indian_market : true;
-    
-    let html = `
-        <div class="perm-item">
-            <span><i class="fas fa-flag" style="color:var(--gold);margin-right:6px"></i>Indian Market Journal</span>
-            <label class="toggle-switch"><input type="checkbox" id="perm_indian_market" ${indianMarketChecked?'checked':''}><span class="toggle-slider"></span></label>
-        </div>
-    `;
-    
-    html += LOCKABLE.map(f=>`
-        <div class="perm-item">
-            <span><i class="fas ${f.icon}" style="color:var(--gold);margin-right:6px"></i>${f.label}</span>
-            <label class="toggle-switch"><input type="checkbox" id="perm_${f.key}" ${access[f.key]?'checked':''}><span class="toggle-slider"></span></label>
+    // Indian Market is default active for everyone. We map LOCKABLE directly which includes Forex Premium!
+    const html = LOCKABLE.map(f=>`
+        <div class="perm-item" style="background: var(--bg); border: 1px solid var(--border); padding: 10px 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px">
+            <span><i class="fas ${f.icon}" style="color:var(--gold);margin-right:8px"></i><strong>${f.label}</strong></span>
+            <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 20px;">
+                <input type="checkbox" id="perm_${f.key}" ${access[f.key]?'checked':''} style="opacity: 0; width: 0; height: 0;">
+                <span class="toggle-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border); transition: .3s; border-radius: 20px;"></span>
+            </label>
         </div>
     `).join('');
     
@@ -2665,7 +2668,7 @@ function saveUser(){
     const validTo = document.getElementById('uValidTo').value;
     
     const access={};
-    access.indian_market = document.getElementById('perm_indian_market').checked;
+    access.indian_market = true; // Always true by default
     LOCKABLE.forEach(f=>{access[f.key]=document.getElementById('perm_'+f.key).checked});
     
     const users=getUsers();

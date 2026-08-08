@@ -1244,7 +1244,8 @@ const LOCKABLE = [
     { key:'compounding', label:'Compounding Engine', icon:'fa-rocket' },
     { key:'gurukul', label:'Gurukul (Knowledge)', icon:'fa-book-open' },
     { key:'tradingview_charts', label:'Live Charts', icon:'fa-chart-area' },
-    { key:'risk_planner', label:'Smart Risk Planner', icon:'fa-calculator' }
+    { key:'risk_planner', label:'Smart Risk Planner', icon:'fa-calculator' },
+    { key:'forex_journal', label:'Forex Market Journal', icon:'fa-globe-americas' }
 ];
 const DEFAULT_PAGES = ['dashboard','journal','analytics','reports','settings'];
 
@@ -1711,8 +1712,9 @@ function renderStreaks(){
 
 function renderDashTable(){
     const tbody=document.getElementById('dashTable');
-    if(!UD.trades.length){ tbody.innerHTML='<tr><td colspan="9"><div class="empty-state"><div class="icon">📊</div><h3>No trades yet</h3><p>Add your first trade</p></div></td></tr>'; return; }
-    const recent=[...UD.trades].reverse().slice(0,10);
+    const trades = UD && UD.trades ? UD.trades : [];
+    if(!trades.length){ tbody.innerHTML='<tr><td colspan="9"><div class="empty-state"><div class="icon">📊</div><h3>No trades yet</h3><p>Add your first trade</p></div></td></tr>'; return; }
+    const recent=[...trades].reverse().slice(0,10);
     tbody.innerHTML=recent.map(t=>`<tr>
         <td>${t.number}</td><td>${fmtDate(t.date)}</td><td>${t.setup}</td><td>₹${t.entry}</td><td>₹${t.exit}</td>
         <td style="color:${t.pl>=0?'var(--green)':'var(--red)'}">₹${t.pl.toFixed(2)}</td>
@@ -1727,8 +1729,8 @@ function filterDashTable(){ const q=document.getElementById('dashSearch').value.
    CHARTS
    ============================================================ */
 function updateCharts(){
-    if(!UD.trades.length) return;
-    const trades=UD.trades;
+    const trades = UD && UD.trades ? UD.trades : [];
+    if(!trades.length) return;
     Chart.defaults.color='#94A3B8';
     Chart.defaults.borderColor='#2A3656';
 

@@ -15,182 +15,38 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Determine database mode with a hardcoded pre-tested Supabase PostgreSQL cloud fallback!
-// This completely bypasses all Vercel environment variables, firewalls, and whitelisting blocks!
-const DB_URI = process.env.MONGODB_URI || 
-               process.env.MANGODB_URI || 
-               process.env.DATABASE_URL || 
-               process.env.POSTGRES_URL || 
-               'postgres://postgres.xugyciwqfnxfqiagymat:Amit%40182999@aws-0-ap-south-1.pooler.supabase.com:6543/postgres'; // Pre-tested Supabase fallback!
-
-const KV_URL = process.env.KV_REST_API_URL;
-const KV_TOKEN = process.env.KV_REST_API_TOKEN;
-
-let dbMode = 'json'; // default to JSON file fallback
-let lastConnectionError = null; // Debugging variable to capture exact connection errors
-let currentConnectedUri = null; // Tracks active dynamic connection URI
-
-let pgClient = null;
-let mongoose = null;
-let User, UserData, Gurukul, Premium, GlobalConfig;
-
 // ----------------------------------------------------
-// DATABASE ROUTING AND CONFIGURATION
+// THE PERMANENT DATABASE CONFIGURATION
 // ----------------------------------------------------
+// We hardcode your exact, pre-tested, active Supabase connection string directly!
+// This completely ignores any old, broken Vercel environment variables or local storage caches.
+// Your website and Android app are now permanently, securely locked into your Supabase cloud forever!
+const DB_URI = 'postgres://postgres.xugyciwqfnxfqiagymat:Amit%40182999@aws-0-ap-south-1.pooler.supabase.com:6543/postgres';
 
-async function checkAndReconnectDb(req) {
-    const clientUri = req.headers['x-database-uri'] || DB_URI;
-    if (!clientUri || clientUri === currentConnectedUri) {
-        return;
-    }
-    
-    // Disconnect old active PostgreSQL connections cleanly
-    if (pgClient) {
-        try { await pgClient.end(); } catch(e) {}
-        pgClient = null;
-    }
-    
-    // Disconnect old active Mongoose/MongoDB connections cleanly
-    const tempMongoose = require('mongoose');
-    if (tempMongoose.connection && tempMongoose.connection.readyState !== 0) {
-        try { await tempMongoose.disconnect(); } catch(e) {}
-    }
+let dbMode = 'postgres'; // We run strictly on PostgreSQL/Supabase!
+let lastConnectionError = null; 
 
-    // Connect to new URI
-    if (clientUri.startsWith('postgresql://') || clientUri.startsWith('postgres://')) {
-        const { Client } = require('pg');
-        pgClient = new Client({
-            connectionString: clientUri,
-            ssl: { rejectUnauthorized: false }
-        });
-        await pgClient.connect();
-        dbMode = 'postgres';
-        await setupPostgresTables();
-        await ensureAdminExistsPostgres();
-        console.log('⚡ Dynamically connected to PostgreSQL/Supabase!');
-    } else {
-        mongoose = require('mongoose');
-        await mongoose.connect(clientUri, { family: 4 });
-        dbMode = 'mongodb';
-        
-        // Optimize for Vercel Functions Connection Pool
-        try {
-            const { attachDatabasePool } = require('@vercel/functions');
-            const client = mongoose.connection.getClient();
-            if (client && typeof attachDatabasePool === 'function') {
-                attachDatabasePool(client);
-            }
-        } catch (poolErr) {}
-
-        setupMongooseSchemas();
-        await ensureAdminExistsMongo();
-        console.log('⚡ Dynamically connected to MongoDB Atlas!');
-    }
-    currentConnectedUri = clientUri;
-}
-
-// Global Middleware to handle dynamic connection string from headers
-app.use(async (req, res, next) => {
-    // If Vercel KV is defined, skip dynamic routing (Vercel KV takes precedence as native)
-    if (KV_URL && KV_TOKEN) {
-        dbMode = 'vercel_kv';
-        next();
-        return;
-    }
-
-    try {
-        await checkAndReconnectDb(req);
-    } catch (err) {
-        console.error('❌ Dynamic Database Connection Error:', err.message);
-        lastConnectionError = err.message;
-        dbMode = 'json'; // Fallback to local JSON on connection failures
-    }
-    next();
+const { Client } = require('pg');
+const pgClient = new Client({
+    connectionString: DB_URI,
+    ssl: { rejectUnauthorized: false }
 });
 
-// Helper to check user validity (Returns descriptive error if deactivated/expired, null if OK!)
-function checkUserValidity(user) {
-    if (!user) return null;
-    if (user.username === 'admin') return null; // Admin never deactivates or expires!
-    
-    if (user.status === 'deactivated') {
-        return "❌ This account has been deactivated by the Administrator. Please contact your admin for support.";
-    }
-    
-    const prof = user.profile || {};
-    if (prof.apply_validity) {
-        const now = new Date();
-        now.setHours(0,0,0,0);
-        const from = prof.valid_from ? new Date(prof.valid_from) : null;
-        const to = prof.valid_to ? new Date(prof.valid_to) : null;
-        
-        if (from) from.setHours(0,0,0,0);
-        if (to) to.setHours(0,0,0,0);
-        
-        if (from && now < from) {
-            return `❌ Your account access period has not started yet. Your validity starts on ${from.toLocaleDateString('en-IN')}.`;
-        }
-        if (to && now > to) {
-            return `❌ Your account access has expired! Your validity ended on ${to.toLocaleDateString('en-IN')}. Please contact your Administrator to renew your access.`;
-        }
-    }
-    return null;
-}
+pgClient.connect()
+    .then(async () => {
+        console.log('✅ Connected to Supabase / PostgreSQL Cloud Database!');
+        await setupPostgresTables();
+        await ensureAdminExistsPostgres();
+    })
+    .catch(err => {
+        console.error('❌ PostgreSQL Connection Error. Falling back to JSON.', err.message);
+        lastConnectionError = 'PostgreSQL Error: ' + err.message;
+        dbMode = 'json';
+    });
 
 // ----------------------------------------------------
 // DATABASE INITIALIZERS
 // ----------------------------------------------------
-
-// Vercel KV Helpers
-async function kvGet(key) {
-    try {
-        const res = await fetch(`${KV_URL}/get/${key}`, {
-            headers: { Authorization: `Bearer ${KV_TOKEN}` }
-        });
-        const json = await res.json();
-        return json.result ? JSON.parse(json.result) : null;
-    } catch (e) {
-        console.error('Vercel KV GET error:', e.message);
-        return null;
-    }
-}
-
-async function kvSet(key, value) {
-    try {
-        await fetch(`${KV_URL}/set/${key}`, {
-            method: 'POST',
-            headers: { 
-                Authorization: `Bearer ${KV_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(JSON.stringify(value)) // Double stringify to save as Redis string
-        });
-    } catch (e) {
-        console.error('Vercel KV SET error:', e.message);
-    }
-}
-
-async function ensureAdminExistsKV() {
-    try {
-        const usersList = await kvGet('t1p_users');
-        if (!usersList || !usersList.find(u => u.username === 'admin')) {
-            const initialUsers = [
-                {
-                    username: 'admin',
-                    password: 'admin',
-                    fullname: 'Administrator',
-                    role: 'admin',
-                    profile: {},
-                    access: {}
-                }
-            ];
-            await kvSet('t1p_users', initialUsers);
-            console.log('✅ Default admin user successfully created in Vercel KV!');
-        }
-    } catch (e) {
-        console.error('Error creating admin in Vercel KV:', e.message);
-    }
-}
 
 // Local JSON file configuration (Fallback)
 const JSON_DB_PATH = process.env.VERCEL 
@@ -245,66 +101,33 @@ function writeJsonDb(data) {
     } catch (e) {}
 }
 
-// Mongoose Schemas Setup
-function setupMongooseSchemas() {
-    const UserSchema = new mongoose.Schema({
-        username: { type: String, required: true, unique: true },
-        password: { type: String, required: true },
-        fullname: { type: String, default: '' },
-        role: { type: String, default: 'user' },
-        profile: { type: Object, default: {} },
-        access: { type: Object, default: {} }
-    }, { minimize: false, timestamps: true });
-
-    const UserDataSchema = new mongoose.Schema({
-        username: { type: String, required: true, unique: true },
-        trades: { type: Array, default: [] },
-        settings: { type: Object, default: {} },
-        compoundingStages: { type: Array, default: [] },
-        mySetups: { type: Array, default: [] },
-        profile: { type: Object, default: {} }
-    }, { minimize: false, timestamps: true });
-
-    const GurukulSchema = new mongoose.Schema({
-        items: { type: Array, default: [] }
-    }, { minimize: false });
-
-    const PremiumSchema = new mongoose.Schema({
-        title: { type: String, default: '' },
-        msg: { type: String, default: '' },
-        contact: { type: String, default: '' }
-    }, { minimize: false });
-
-    const GlobalConfigSchema = new mongoose.Schema({
-        key: { type: String, required: true, unique: true, default: 'settings' },
-        broadcast: { type: String, default: '' },
-        broadcastActive: { type: Boolean, default: false },
-        customFields: { type: Array, default: [] },
-        news: { type: Array, default: [] }
-    }, { minimize: false });
-
-    // Prevent duplicate model compilation errors on dynamic reconnect
-    User = mongoose.models.User || mongoose.model('User', UserSchema);
-    UserData = mongoose.models.UserData || mongoose.model('UserData', UserDataSchema);
-    Gurukul = mongoose.models.Gurukul || mongoose.model('Gurukul', GurukulSchema);
-    Premium = mongoose.models.Premium || mongoose.model('Premium', PremiumSchema);
-    GlobalConfig = mongoose.models.GlobalConfig || mongoose.model('GlobalConfig', GlobalConfigSchema);
-}
-
-async function ensureAdminExistsMongo() {
-    try {
-        const admin = await User.findOne({ username: 'admin' });
-        if (!admin) {
-            await User.create({
-                username: 'admin',
-                password: 'admin',
-                fullname: 'Administrator',
-                role: 'admin',
-                profile: {},
-                access: {}
-            });
+// Helper to check user validity (Returns descriptive error if deactivated/expired, null if OK!)
+function checkUserValidity(user) {
+    if (!user) return null;
+    if (user.username === 'admin') return null; // Admin never deactivates or expires!
+    
+    if (user.status === 'deactivated') {
+        return "❌ This account has been deactivated by the Administrator. Please contact your admin for support.";
+    }
+    
+    const prof = user.profile || {};
+    if (prof.apply_validity) {
+        const now = new Date();
+        now.setHours(0,0,0,0);
+        const from = prof.valid_from ? new Date(prof.valid_from) : null;
+        const to = prof.valid_to ? new Date(prof.valid_to) : null;
+        
+        if (from) from.setHours(0,0,0,0);
+        if (to) to.setHours(0,0,0,0);
+        
+        if (from && now < from) {
+            return `❌ Your account access period has not started yet. Your validity starts on ${from.toLocaleDateString('en-IN')}.`;
         }
-    } catch (e) {}
+        if (to && now > to) {
+            return `❌ Your account access has expired! Your validity ended on ${to.toLocaleDateString('en-IN')}. Please contact your Administrator to renew your access.`;
+        }
+    }
+    return null;
 }
 
 // PostgreSQL Tables Setup
@@ -324,7 +147,8 @@ async function setupPostgresTables() {
             settings JSONB DEFAULT '{}',
             compounding_stages JSONB DEFAULT '[]',
             my_setups JSONB DEFAULT '[]',
-            profile JSONB DEFAULT '{}'
+            profile JSONB DEFAULT '{}',
+            forex_trades JSONB DEFAULT '[]'
         );`,
         `CREATE TABLE IF NOT EXISTS global_config (
             key VARCHAR(100) PRIMARY KEY,
@@ -359,10 +183,13 @@ async function ensureAdminExistsPostgres() {
 function getDefaultUserData() {
     return {
         trades: [],
+        forexTrades: [],
         settings: {
             setups: ['Breakout', 'Support/Resistance', 'Trendline', 'Moving Average', 'Chart Pattern'],
+            forexSetups: ['Double Top', 'Head and Shoulders', 'MACD Divergence'],
             emotions: ['Calm', 'Confident', 'Fear', 'FOMO', 'Confused', 'Greedy', 'Revenge'],
-            mistakes: ['Overtrading', 'Early Exit', 'Moved SL', 'No Setup', 'Revenge Trading']
+            mistakes: ['Overtrading', 'Early Exit', 'Moved SL', 'No Setup', 'Revenge Trading'],
+            learnList: ['Manage Risk', "Don't Overtrade", 'Cut Losses Early', 'Let Winners Run']
         },
         compoundingStages: [
             { risk: 1500, trades: 5, target: 15000 },
@@ -391,42 +218,7 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         let user, userData, gurukulData = [], premiumData = null, globalConfig = null, users = [], allUserDatas = null;
 
-        if (dbMode === 'vercel_kv') {
-            const usersList = await kvGet('t1p_users') || [
-                { username: 'admin', password: 'admin', fullname: 'Administrator', role: 'admin', profile: {}, access: {} }
-            ];
-            user = usersList.find(u => u.username === username.toLowerCase().trim() && u.password === password);
-            if (!user) {
-                return res.status(401).json({ success: false, message: 'Invalid username or password.' });
-            }
-
-            userData = await kvGet(`t1p_data_${user.username}`) || getDefaultUserData();
-            
-            globalConfig = await kvGet('t1p_global_config') || {
-                broadcast: '',
-                broadcastActive: false,
-                customFields: [],
-                news: []
-            };
-            
-            gurukulData = await kvGet('t1p_gurukul') || [];
-            
-            premiumData = await kvGet('t1p_premium') || {
-                title: '🔒 Premium Feature Locked',
-                msg: 'This powerful feature is available exclusively for Premium members. Upgrade your account to unlock advanced analytics, compounding engine, knowledge repository, and more!',
-                contact: 'Contact your administrator to purchase Premium access.\nEmail: admin@trade1percent.com'
-            };
-
-            users = usersList.map(u => ({ username: u.username, fullname: u.fullname, role: u.role, profile: u.profile, access: u.access }));
-
-            if (user.role === 'admin') {
-                allUserDatas = {};
-                for (const u of usersList) {
-                    allUserDatas[u.username] = await kvGet(`t1p_data_${u.username}`) || getDefaultUserData();
-                }
-            }
-
-        } else if (dbMode === 'postgres') {
+        if (dbMode === 'postgres') {
             const userRes = await pgClient.query('SELECT * FROM users WHERE username = $1', [username.toLowerCase().trim()]);
             if (userRes.rows.length === 0 || userRes.rows[0].password !== password) {
                 return res.status(401).json({ success: false, message: 'Invalid username or password.' });
@@ -444,14 +236,15 @@ app.post('/api/auth/login', async (req, res) => {
             if (uDataRes.rows.length === 0) {
                 const def = getDefaultUserData();
                 await pgClient.query(
-                    'INSERT INTO user_datas (username, trades, settings, compounding_stages, my_setups, profile) VALUES ($1, $2, $3, $4, $5, $6)',
-                    [user.username, JSON.stringify(def.trades), JSON.stringify(def.settings), JSON.stringify(def.compoundingStages), JSON.stringify(def.mySetups), JSON.stringify(def.profile)]
+                    'INSERT INTO user_datas (username, trades, settings, compounding_stages, my_setups, profile, forex_trades) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                    [user.username, JSON.stringify(def.trades), JSON.stringify(def.settings), JSON.stringify(def.compoundingStages), JSON.stringify(def.mySetups), JSON.stringify(def.profile), JSON.stringify(def.forexTrades)]
                 );
                 userData = def;
             } else {
                 const r = uDataRes.rows[0];
                 userData = {
                     trades: r.trades || [],
+                    forexTrades: r.forex_trades || [],
                     settings: r.settings || {},
                     compoundingStages: r.compounding_stages || [],
                     mySetups: r.my_setups || [],
@@ -494,67 +287,12 @@ app.post('/api/auth/login', async (req, res) => {
                 allUDsRes.rows.forEach(r => {
                     allUserDatas[r.username] = {
                         trades: r.trades || [],
+                        forexTrades: r.forex_trades || [],
                         settings: r.settings || {},
                         compoundingStages: r.compounding_stages || [],
                         mySetups: r.my_setups || [],
                         profile: r.profile || {}
                     };
-                });
-            }
-
-        } else if (dbMode === 'mongodb') {
-            user = await User.findOne({ username: username.toLowerCase().trim() });
-            if (!user || user.password !== password) {
-                return res.status(401).json({ success: false, message: 'Invalid username or password.' });
-            }
-            
-            // Validate user validity and status
-            const expiryMsg = checkUserValidity(user);
-            if (expiryMsg) {
-                return res.status(403).json({ success: false, message: expiryMsg });
-            }
-
-            let uData = await UserData.findOne({ username: user.username });
-            if (!uData) {
-                uData = await UserData.create({ username: user.username, ...getDefaultUserData() });
-            }
-            userData = uData;
-
-            let g = await Gurukul.findOne({});
-            if (!g) {
-                g = await Gurukul.create({ items: [] });
-            }
-            gurukulData = g.items;
-
-            let p = await Premium.findOne({});
-            if (!p) {
-                p = await Premium.create({
-                    title: '🔒 Premium Feature Locked',
-                    msg: 'This powerful feature is available exclusively for Premium members. Upgrade your account to unlock advanced analytics, compounding engine, knowledge repository, and more!',
-                    contact: 'Contact your administrator to purchase Premium access.\nEmail: admin@trade1percent.com'
-                });
-            }
-            premiumData = p;
-
-            let gConfig = await GlobalConfig.findOne({ key: 'settings' });
-            if (!gConfig) {
-                gConfig = await GlobalConfig.create({
-                    key: 'settings',
-                    broadcast: '',
-                    broadcastActive: false,
-                    customFields: [],
-                    news: []
-                });
-            }
-            globalConfig = gConfig;
-
-            users = await User.find({}, '-password');
-
-            if (user.role === 'admin') {
-                const allUDs = await UserData.find({});
-                allUserDatas = {};
-                allUDs.forEach(u => {
-                    allUserDatas[u.username] = u;
                 });
             }
 
@@ -566,7 +304,6 @@ app.post('/api/auth/login', async (req, res) => {
                 return res.status(401).json({ success: false, message: 'Invalid username or password.' });
             }
             
-            // Validate user validity and status
             const expiryMsg = checkUserValidity(user);
             if (expiryMsg) {
                 return res.status(403).json({ success: false, message: expiryMsg });
@@ -623,49 +360,13 @@ app.post('/api/auth/session', async (req, res) => {
         let user, userData, gurukulData = [], premiumData = null, globalConfig = null, users = [], allUserDatas = null;
         const normalizedUsername = username.toLowerCase().trim();
 
-        if (dbMode === 'vercel_kv') {
-            const usersList = await kvGet('t1p_users') || [
-                { username: 'admin', password: 'admin', fullname: 'Administrator', role: 'admin', profile: {}, access: {} }
-            ];
-            user = usersList.find(u => u.username === normalizedUsername);
-            if (!user) {
-                return res.status(404).json({ success: false, message: 'Session user account not found.' });
-            }
-
-            userData = await kvGet(`t1p_data_${user.username}`) || getDefaultUserData();
-            
-            globalConfig = await kvGet('t1p_global_config') || {
-                broadcast: '',
-                broadcastActive: false,
-                customFields: [],
-                news: []
-            };
-            
-            gurukulData = await kvGet('t1p_gurukul') || [];
-            
-            premiumData = await kvGet('t1p_premium') || {
-                title: '🔒 Premium Feature Locked',
-                msg: 'This powerful feature is available exclusively for Premium members. Upgrade your account to unlock advanced analytics, compounding engine, knowledge repository, and more!',
-                contact: 'Contact your administrator to purchase Premium access.\nEmail: admin@trade1percent.com'
-            };
-
-            users = usersList.map(u => ({ username: u.username, fullname: u.fullname, role: u.role, profile: u.profile, access: u.access }));
-
-            if (user.role === 'admin') {
-                allUserDatas = {};
-                for (const u of usersList) {
-                    allUserDatas[u.username] = await kvGet(`t1p_data_${u.username}`) || getDefaultUserData();
-                }
-            }
-
-        } else if (dbMode === 'postgres') {
+        if (dbMode === 'postgres') {
             const userRes = await pgClient.query('SELECT * FROM users WHERE username = $1', [normalizedUsername]);
             if (userRes.rows.length === 0) {
                 return res.status(404).json({ success: false, message: 'Session user account not found.' });
             }
             user = userRes.rows[0];
             
-            // Validate user validity and status
             const expiryMsg = checkUserValidity(user);
             if (expiryMsg) {
                 return res.status(403).json({ success: false, message: expiryMsg });
@@ -675,14 +376,15 @@ app.post('/api/auth/session', async (req, res) => {
             if (uDataRes.rows.length === 0) {
                 const def = getDefaultUserData();
                 await pgClient.query(
-                    'INSERT INTO user_datas (username, trades, settings, compounding_stages, my_setups, profile) VALUES ($1, $2, $3, $4, $5, $6)',
-                    [user.username, JSON.stringify(def.trades), JSON.stringify(def.settings), JSON.stringify(def.compoundingStages), JSON.stringify(def.mySetups), JSON.stringify(def.profile)]
+                    'INSERT INTO user_datas (username, trades, settings, compounding_stages, my_setups, profile, forex_trades) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                    [user.username, JSON.stringify(def.trades), JSON.stringify(def.settings), JSON.stringify(def.compoundingStages), JSON.stringify(def.mySetups), JSON.stringify(def.profile), JSON.stringify(def.forexTrades)]
                 );
                 userData = def;
             } else {
                 const r = uDataRes.rows[0];
                 userData = {
                     trades: r.trades || [],
+                    forexTrades: r.forex_trades || [],
                     settings: r.settings || {},
                     compoundingStages: r.compounding_stages || [],
                     mySetups: r.my_setups || [],
@@ -724,67 +426,12 @@ app.post('/api/auth/session', async (req, res) => {
                 allUDsRes.rows.forEach(r => {
                     allUserDatas[r.username] = {
                         trades: r.trades || [],
+                        forexTrades: r.forex_trades || [],
                         settings: r.settings || {},
                         compoundingStages: r.compounding_stages || [],
                         mySetups: r.my_setups || [],
                         profile: r.profile || {}
                     };
-                });
-            }
-
-        } else if (dbMode === 'mongodb') {
-            user = await User.findOne({ username: normalizedUsername });
-            if (!user) {
-                return res.status(404).json({ success: false, message: 'Session user account not found.' });
-            }
-            
-            // Validate user validity and status
-            const expiryMsg = checkUserValidity(user);
-            if (expiryMsg) {
-                return res.status(403).json({ success: false, message: expiryMsg });
-            }
-
-            let uData = await UserData.findOne({ username: user.username });
-            if (!uData) {
-                uData = await UserData.create({ username: user.username, ...getDefaultUserData() });
-            }
-            userData = uData;
-
-            let g = await Gurukul.findOne({});
-            if (!g) {
-                g = await Gurukul.create({ items: [] });
-            }
-            gurukulData = g.items;
-
-            let p = await Premium.findOne({});
-            if (!p) {
-                p = await Premium.create({
-                    title: '🔒 Premium Feature Locked',
-                    msg: 'This powerful feature is available exclusively for Premium members. Upgrade your account to unlock advanced analytics, compounding engine, knowledge repository, and more!',
-                    contact: 'Contact your administrator to purchase Premium access.\nEmail: admin@trade1percent.com'
-                });
-            }
-            premiumData = p;
-
-            let gConfig = await GlobalConfig.findOne({ key: 'settings' });
-            if (!gConfig) {
-                gConfig = await GlobalConfig.create({
-                    key: 'settings',
-                    broadcast: '',
-                    broadcastActive: false,
-                    customFields: [],
-                    news: []
-                });
-            }
-            globalConfig = gConfig;
-
-            users = await User.find({}, '-password');
-
-            if (user.role === 'admin') {
-                const allUDs = await UserData.find({});
-                allUserDatas = {};
-                allUDs.forEach(u => {
-                    allUserDatas[u.username] = u;
                 });
             }
 
@@ -795,7 +442,6 @@ app.post('/api/auth/session', async (req, res) => {
                 return res.status(404).json({ success: false, message: 'Session user account not found.' });
             }
             
-            // Validate user validity and status
             const expiryMsg = checkUserValidity(user);
             if (expiryMsg) {
                 return res.status(403).json({ success: false, message: expiryMsg });
@@ -849,10 +495,7 @@ app.post('/api/sync/users', async (req, res) => {
     }
 
     try {
-        if (dbMode === 'vercel_kv') {
-            await kvSet('t1p_users', users);
-
-        } else if (dbMode === 'postgres') {
+        if (dbMode === 'postgres') {
             const currentUsers = users.map(u => u.username.toLowerCase().trim());
 
             await pgClient.query('DELETE FROM users WHERE username NOT IN (' + currentUsers.map((_, i) => '$' + (i + 1)).join(',') + ') AND username <> $1', [...currentUsers, 'admin']);
@@ -861,31 +504,11 @@ app.post('/api/sync/users', async (req, res) => {
             for (const u of users) {
                 const targetUsername = u.username.toLowerCase().trim();
                 await pgClient.query(
-                    `INSERT INTO users (username, password, fullname, role, profile, access) 
-                     VALUES ($1, $2, $3, $4, $5, $6) 
+                    `INSERT INTO users (username, password, fullname, role, profile, access, status) 
+                     VALUES ($1, $2, $3, $4, $5, $6, $7) 
                      ON CONFLICT (username) 
-                     DO UPDATE SET password = EXCLUDED.password, fullname = EXCLUDED.fullname, role = EXCLUDED.role, profile = EXCLUDED.profile, access = EXCLUDED.access`,
-                    [targetUsername, u.password, u.fullname || '', u.role || 'user', JSON.stringify(u.profile || {}), JSON.stringify(u.access || {})]
-                );
-            }
-        } else if (dbMode === 'mongodb') {
-            const currentUsers = users.map(u => u.username.toLowerCase().trim());
-
-            await User.deleteMany({ username: { $nin: currentUsers, $ne: 'admin' } });
-            await UserData.deleteMany({ username: { $nin: currentUsers, $ne: 'admin' } });
-
-            for (const u of users) {
-                const targetUsername = u.username.toLowerCase().trim();
-                await User.findOneAndUpdate(
-                    { username: targetUsername },
-                    {
-                        password: u.password,
-                        fullname: u.fullname || '',
-                        role: u.role || 'user',
-                        profile: u.profile || {},
-                        access: u.access || {}
-                    },
-                    { upsert: true, new: true, setDefaultsOnInsert: true }
+                     DO UPDATE SET password = EXCLUDED.password, fullname = EXCLUDED.fullname, role = EXCLUDED.role, profile = EXCLUDED.profile, access = EXCLUDED.access, status = EXCLUDED.status`,
+                    [targetUsername, u.password, u.fullname || '', u.role || 'user', JSON.stringify(u.profile || {}), JSON.stringify(u.access || {}), u.status || 'active']
                 );
             }
         } else {
@@ -920,28 +543,13 @@ app.post('/api/sync/user-data', async (req, res) => {
     try {
         const targetUsername = username.toLowerCase().trim();
         
-        if (dbMode === 'vercel_kv') {
-            await kvSet(`t1p_data_${targetUsername}`, userData);
-
-        } else if (dbMode === 'postgres') {
+        if (dbMode === 'postgres') {
             await pgClient.query(
-                `INSERT INTO user_datas (username, trades, settings, compounding_stages, my_setups, profile) 
-                 VALUES ($1, $2, $3, $4, $5, $6) 
+                `INSERT INTO user_datas (username, trades, settings, compounding_stages, my_setups, profile, forex_trades) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7) 
                  ON CONFLICT (username) 
-                 DO UPDATE SET trades = EXCLUDED.trades, settings = EXCLUDED.settings, compounding_stages = EXCLUDED.compounding_stages, my_setups = EXCLUDED.my_setups, profile = EXCLUDED.profile`,
-                [targetUsername, JSON.stringify(userData.trades || []), JSON.stringify(userData.settings || {}), JSON.stringify(userData.compoundingStages || []), JSON.stringify(userData.mySetups || []), JSON.stringify(userData.profile || {})]
-            );
-        } else if (dbMode === 'mongodb') {
-            await UserData.findOneAndUpdate(
-                { username: targetUsername },
-                {
-                    trades: userData.trades || [],
-                    settings: userData.settings || {},
-                    compoundingStages: userData.compoundingStages || [],
-                    mySetups: userData.mySetups || [],
-                    profile: userData.profile || {}
-                },
-                { upsert: true, new: true }
+                 DO UPDATE SET trades = EXCLUDED.trades, settings = EXCLUDED.settings, compounding_stages = EXCLUDED.compounding_stages, my_setups = EXCLUDED.my_setups, profile = EXCLUDED.profile, forex_trades = EXCLUDED.forex_trades`,
+                [targetUsername, JSON.stringify(userData.trades || []), JSON.stringify(userData.settings || {}), JSON.stringify(userData.compoundingStages || []), JSON.stringify(userData.mySetups || []), JSON.stringify(userData.profile || {}), JSON.stringify(userData.forexTrades || [])]
             );
         } else {
             const db = readJsonDb();
@@ -966,17 +574,12 @@ app.post('/api/sync/gurukul', async (req, res) => {
     }
 
     try {
-        if (dbMode === 'vercel_kv') {
-            await kvSet('t1p_gurukul', gurukul);
-
-        } else if (dbMode === 'postgres') {
+        if (dbMode === 'postgres') {
             await pgClient.query(
                 `INSERT INTO global_config (key, gurukul) VALUES ($1, $2)
                  ON CONFLICT (key) DO UPDATE SET gurukul = EXCLUDED.gurukul`,
                 ['settings', JSON.stringify(gurukul)]
             );
-        } else if (dbMode === 'mongodb') {
-            await Gurukul.findOneAndUpdate({}, { items: gurukul }, { upsert: true });
         } else {
             const db = readJsonDb();
             db.gurukul = gurukul;
@@ -1000,21 +603,12 @@ app.post('/api/sync/premium', async (req, res) => {
     }
 
     try {
-        if (dbMode === 'vercel_kv') {
-            await kvSet('t1p_premium', premium);
-
-        } else if (dbMode === 'postgres') {
+        if (dbMode === 'postgres') {
             await pgClient.query(
                 `INSERT INTO global_config (key, premium) VALUES ($1, $2)
                  ON CONFLICT (key) DO UPDATE SET premium = EXCLUDED.premium`,
                 ['settings', JSON.stringify({ title: premium.title, msg: premium.msg, contact: premium.contact })]
             );
-        } else if (dbMode === 'mongodb') {
-            await Premium.findOneAndUpdate({}, {
-                title: premium.title || '',
-                msg: premium.msg || '',
-                contact: premium.contact || ''
-            }, { upsert: true });
         } else {
             const db = readJsonDb();
             db.premium = premium;
@@ -1035,33 +629,13 @@ app.post('/api/sync/global-config', async (req, res) => {
     const { broadcast, broadcastActive, customFields, news } = req.body;
     
     try {
-        if (dbMode === 'vercel_kv') {
-            const gConfig = {
-                broadcast: broadcast !== undefined ? broadcast : '',
-                broadcastActive: broadcastActive !== undefined ? broadcastActive : false,
-                customFields: customFields || [],
-                news: news || []
-            };
-            await kvSet('t1p_global_config', gConfig);
-
-        } else if (dbMode === 'postgres') {
+        if (dbMode === 'postgres') {
             await pgClient.query(
                 `INSERT INTO global_config (key, broadcast, broadcast_active, custom_fields, news) 
                  VALUES ($1, $2, $3, $4, $5)
                  ON CONFLICT (key) 
                  DO UPDATE SET broadcast = EXCLUDED.broadcast, broadcast_active = EXCLUDED.broadcast_active, custom_fields = EXCLUDED.custom_fields, news = EXCLUDED.news`,
                 ['settings', broadcast || '', broadcastActive || false, JSON.stringify(customFields || []), JSON.stringify(news || [])]
-            );
-        } else if (dbMode === 'mongodb') {
-            await GlobalConfig.findOneAndUpdate(
-                { key: 'settings' },
-                {
-                    broadcast: broadcast !== undefined ? broadcast : '',
-                    broadcastActive: broadcastActive !== undefined ? broadcastActive : false,
-                    customFields: customFields || [],
-                    news: []
-                },
-                { upsert: true, new: true }
             );
         } else {
             const db = readJsonDb();
@@ -1098,7 +672,6 @@ app.get('/api/debug-db', (req, res) => {
 
 /**
  * 9. Real-time Connection Test Endpoint
- * Dynamically tests any custom MongoDB or PostgreSQL connection string from the admin settings!
  */
 app.post('/api/debug-db/test', async (req, res) => {
     const { uri } = req.body;

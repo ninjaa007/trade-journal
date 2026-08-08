@@ -523,6 +523,13 @@
                 <button class="btn btn-gold" onclick="openTradeModal()"><i class="fas fa-plus"></i> New Trade</button>
             </div>
         </div>
+        
+        <!-- Dashboard Market Filter Tab Bar -->
+        <div class="tab-bar" id="dashTabBar" style="margin-bottom: 20px">
+            <div class="tab-btn active" onclick="switchDashboardMarket(this, 'indian')">🇮🇳 Indian Market</div>
+            <div class="tab-btn" id="dashForexTabBtn" style="display:none" onclick="switchDashboardMarket(this, 'forex')">🌍 Forex Market</div>
+        </div>
+        
         <div class="stats-grid" id="dashTopStats"></div>
         <div class="stats-grid" id="dashSubStats"></div>
         
@@ -616,6 +623,13 @@
     <!-- ANALYTICS -->
     <div class="page" id="page-analytics">
         <div class="page-header"><div><h1>Deep Analytics</h1><p>Comprehensive performance insights</p></div></div>
+        
+        <!-- Analytics Market Filter Tab Bar -->
+        <div class="tab-bar" id="analyticsTabBar" style="margin-bottom: 20px">
+            <div class="tab-btn active" onclick="switchAnalyticsMarket(this, 'indian')">🇮🇳 Indian Market</div>
+            <div class="tab-btn" id="analyticsForexTabBtn" style="display:none" onclick="switchAnalyticsMarket(this, 'forex')">🌍 Forex Market</div>
+        </div>
+        
         <div class="stats-grid" id="analyticsStats"></div>
         <div class="charts-grid">
             <div class="chart-card"><div class="chart-header"><div class="chart-title">📊 Emotion Impact on P&amp;L</div></div><div class="chart-container"><canvas id="cEmotionImpact"></canvas></div></div>
@@ -669,8 +683,9 @@
                 <div class="form-group">
                     <label>Select Index (Lot size configured in backend)</label>
                     <select id="irIndex" style="width:100%" onchange="calcIndianRisk()">
-                        <option value="25">Nifty 50 (Lot Size: 25)</option>
-                        <option value="15">Bank Nifty (Lot Size: 15)</option>
+                        <option value="65">Nifty 50 (Lot Size: 65)</option>
+                        <option value="30">Bank Nifty (Lot Size: 30)</option>
+                        <option value="20">Sensex (Lot Size: 20)</option>
                     </select>
                 </div>
                 
@@ -1237,6 +1252,8 @@ let CACHED_PREMIUM = null;
 let CACHED_ALL_USER_DATAS = {};
 let CACHED_GLOBAL_CONFIG = { broadcast: '', customFields: [], news: [] };
 let CURRENT_DB_MODE = 'json';
+let CURRENT_DASH_MARKET = 'indian';
+let CURRENT_ANALYTICS_MARKET = 'indian';
 
 // DATABASE AUTO-ROUTING FOR ANDROID APK
 // Replace the URL below with your actual, live Vercel website link!
@@ -1477,6 +1494,18 @@ function initApp(){
         dbBtn.style.display = (CU && CU.role === 'admin') ? 'block' : 'none';
     }
     
+    // Toggle Forex Premium tabs across Dashboard, Analytics, and Reports
+    const hasForex = CU && (CU.role === 'admin' || (CU.access && CU.access.forex_journal));
+    const dashTab = document.getElementById('dashForexTabBtn'); if (dashTab) dashTab.style.display = hasForex ? 'block' : 'none';
+    const analTab = document.getElementById('analyticsForexTabBtn'); if (analTab) analTab.style.display = hasForex ? 'block' : 'none';
+    const repTab = document.getElementById('repForexTabBtn'); if (repTab) repTab.style.display = hasForex ? 'block' : 'none';
+    
+    // Default active market resets
+    CURRENT_DASH_MARKET = 'indian';
+    CURRENT_ANALYTICS_MARKET = 'indian';
+    const dashActiveTab = document.querySelector('#dashTabBar .tab-btn'); if (dashActiveTab) switchDashboardMarket(dashActiveTab, 'indian');
+    const analActiveTab = document.querySelector('#analyticsTabBar .tab-btn'); if (analActiveTab) switchAnalyticsMarket(analActiveTab, 'indian');
+
     // Failsafe Database Check: Alert user if cloud connection failed under the hood!
     setTimeout(() => {
         const customUri = localStorage.getItem('t1p_custom_db_uri');
@@ -1652,8 +1681,18 @@ function renderSnapchatStreaks() {
     }
 }
 
+function switchDashboardMarket(el, market) {
+    document.querySelectorAll('#dashTabBar .tab-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    CURRENT_DASH_MARKET = market;
+    refreshDashboard();
+}
+
 function refreshDashboard(){
-    const trades = UD && UD.trades ? UD.trades : [];
+    const isForex = CURRENT_DASH_MARKET === 'forex';
+    const currencySym = isForex ? '$' : '₹';
+    const trades = isForex ? (UD && UD.forexTrades ? UD.forexTrades : []) : (UD && UD.trades ? UD.trades : []);
+    
     const realTrades=trades.filter(t=>t.result!=='No Trading');
     const totalPL=realTrades.reduce((s,t)=>s+t.pl,0);
     const wins=realTrades.filter(t=>t.result==='Win').length;
@@ -1662,10 +1701,12 @@ function refreshDashboard(){
     const total=realTrades.length;
     const winRate=total?((wins/total)*100).toFixed(1):0;
 
-    const totalChecks=trades.reduce((s,t)=>s+Object.values(t.checklist||{}).filter(v=>v).length,0);
-    const discipline=trades.length?((totalChecks/(trades.length*4))*100).toFixed(1):0;
-    
-    // Exclude 'No Trading' and handle undefined score values robustly to prevent NaN crashes!
+    // Profit Factor Calculation
+    const profitsSum = realTrades.filter(t => t.pl > 0).reduce((s,t) => s + t.pl, 0);
+    const lossesSum = Math.abs(realTrades.filter(t => t.pl < 0).reduce((s,t) => s + t.pl, 0));
+    const profitFactor = lossesSum > 0 ? (profitsSum / lossesSum) : (profitsSum > 0 ? 9.99 : 0);
+
+    // Consistency average score (exclude No Trading)
     const scoredTrades = trades.filter(t => t.score !== null && t.score !== undefined && !isNaN(t.score));
     const avgScore=scoredTrades.length?(scoredTrades.reduce((s,t)=>s+Number(t.score),0)/scoredTrades.length):0;
     
@@ -1684,9 +1725,9 @@ function refreshDashboard(){
     const beDays=Object.values(dayPL).filter(v=>v===0).length;
 
     document.getElementById('dashTopStats').innerHTML=`
-        <div class="stat-card"><div class="stat-top"><div><div class="stat-label">Total P&amp;L</div><div class="stat-value" style="color:${totalPL>=0?'var(--green)':'var(--red)'}">₹${totalPL.toLocaleString('en-IN',{maximumFractionDigits:0})}</div><div class="stat-sub">${total} trades</div></div><div class="stat-icon gold"><i class="fas fa-wallet"></i></div></div></div>
-        <div class="stat-card"><div class="stat-top"><div><div class="stat-label">Win Rate</div><div class="stat-value">${winRate}%</div><div class="stat-sub">${wins}W / ${losses}L / ${bes}BE</div></div><div class="stat-icon green"><i class="fas fa-percentage"></i></div></div></div>
-        <div class="stat-card"><div class="stat-top"><div><div class="stat-label">Discipline</div><div class="stat-value">${discipline}%</div><div class="stat-sub">Checklist score</div></div><div class="stat-icon blue"><i class="fas fa-shield-alt"></i></div></div></div>
+        <div class="stat-card"><div class="stat-top"><div><div class="stat-label">Total P&amp;L</div><div class="stat-value" style="color:${totalPL>=0?'var(--green)':'var(--red)'}">${currencySym}${totalPL.toLocaleString('en-IN',{maximumFractionDigits:0})}</div><div class="stat-sub">${total} trades</div></div><div class="stat-icon gold"><i class="fas fa-wallet"></i></div></div></div>
+        <div class="stat-card"><div class="stat-top"><div><div class="stat-label">Profit Factor</div><div class="stat-value" style="color:${profitFactor>=1.5?'var(--green)':profitFactor>=1.0?'var(--orange)':'var(--red)'}">${profitFactor ? profitFactor.toFixed(2) : '-'}</div><div class="stat-sub">Risk-to-profit index</div></div><div class="stat-icon blue"><i class="fas fa-balance-scale"></i></div></div></div>
+        <div class="stat-card"><div class="stat-top"><div><div class="stat-label">Total Trades Logged</div><div class="stat-value">${trades.length}</div><div class="stat-sub">${wins}W / ${losses}L / ${bes}BE</div></div><div class="stat-icon green"><i class="fas fa-layer-group"></i></div></div></div>
         <div class="stat-card"><div class="stat-top"><div><div class="stat-label">Consistency Score</div><div class="stat-value" style="color:var(--gold)">${Math.round(avgScore)}%</div><div class="stat-sub">Grade: ${rating}</div></div><div class="stat-icon gold"><i class="fas fa-medal"></i></div></div></div>
     `;
     document.getElementById('dashSubStats').innerHTML=`
@@ -1725,17 +1766,65 @@ function renderStreaks(){
 }
 
 function renderDashTable(){
+    const isForex = CURRENT_DASH_MARKET === 'forex';
+    const currencySym = isForex ? '$' : '₹';
+    const trades = isForex ? (UD && UD.forexTrades ? UD.forexTrades : []) : (UD && UD.trades ? UD.trades : []);
+    
     const tbody=document.getElementById('dashTable');
-    const trades = UD && UD.trades ? UD.trades : [];
-    if(!trades.length){ tbody.innerHTML='<tr><td colspan="9"><div class="empty-state"><div class="icon">📊</div><h3>No trades yet</h3><p>Add your first trade</p></div></td></tr>'; return; }
+    const tableHeaderRow = document.querySelector('#page-dashboard table thead tr');
+    
+    // Update headers based on active market
+    if (isForex) {
+        tableHeaderRow.innerHTML = `<th>#</th><th>Date</th><th>Pair</th><th>Type</th><th>Lots</th><th>Pips</th><th>P&amp;L</th><th>Result</th><th>Grade</th><th>Actions</th>`;
+    } else {
+        tableHeaderRow.innerHTML = `<th>#</th><th>Date</th><th>Setup</th><th>Entry</th><th>Exit</th><th>P&amp;L</th><th>Result</th><th>Grade</th><th>Actions</th>`;
+    }
+    
+    if(!trades.length){ 
+        tbody.innerHTML=`<tr><td colspan="10"><div class="empty-state"><div class="icon">📊</div><h3>No trades logged yet</h3><p>Add your first trade inside the Market Journal</p></div></td></tr>`; 
+        return; 
+    }
+    
     const recent=[...trades].reverse().slice(0,10);
-    tbody.innerHTML=recent.map(t=>`<tr>
-        <td>${t.number}</td><td>${fmtDate(t.date)}</td><td>${t.setup}</td><td>₹${t.entry}</td><td>₹${t.exit}</td>
-        <td style="color:${t.pl>=0?'var(--green)':'var(--red)'}">₹${t.pl.toFixed(2)}</td>
-        <td><span class="badge ${badgeCls(t.result)}">${t.result}</span></td>
-        <td><span class="grade ${gradeCls(t.grade)}">${t.grade}</span></td>
-        <td><button class="btn btn-secondary btn-sm" onclick="editTrade(${t.id})"><i class="fas fa-edit"></i></button> <button class="btn btn-danger btn-sm" onclick="deleteTrade(${t.id})"><i class="fas fa-trash"></i></button></td>
-    </tr>`).join('');
+    
+    tbody.innerHTML=recent.map(t=>{
+        const starHTML = t.hasStar ? '<span class="gold-star-award"><i class="fas fa-star"></i></span>' : '';
+        const editFunc = isForex ? `editForexTrade(${t.id})` : `editTrade(${t.id})`;
+        const deleteFunc = isForex ? `deleteForexTrade(${t.id})` : `deleteTrade(${t.id})`;
+        
+        if (isForex) {
+            return `<tr>
+                <td style="font-weight:700">${t.number}${starHTML}</td>
+                <td>${fmtDate(t.date)}</td>
+                <td style="color:var(--gold); font-weight:700">${t.pair}</td>
+                <td><span class="badge ${t.type==='Buy'?'win':'loss'}">${t.type}</span></td>
+                <td>${t.lotSize}</td>
+                <td>${t.pips.toFixed(1)}</td>
+                <td style="color:${t.pl>=0?'var(--green)':'var(--red)'}; font-weight:700">${currencySym}${t.pl.toFixed(2)}</td>
+                <td><span class="badge ${badgeCls(t.result)}">${t.result}</span></td>
+                <td><span class="grade ${gradeCls(t.grade)}">${t.grade}</span></td>
+                <td>
+                    <button class="btn btn-secondary btn-sm" onclick="${editFunc}"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="${deleteFunc}"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        } else {
+            return `<tr>
+                <td style="font-weight:700">${t.number}${starHTML}</td>
+                <td>${fmtDate(t.date)}</td>
+                <td>${t.setup}</td>
+                <td>₹${t.entry}</td>
+                <td>₹${t.exit}</td>
+                <td style="color:${t.pl>=0?'var(--green)':'var(--red)'}">₹${t.pl.toFixed(2)}</td>
+                <td><span class="badge ${badgeCls(t.result)}">${t.result}</span></td>
+                <td><span class="grade ${gradeCls(t.grade)}">${t.grade}</span></td>
+                <td>
+                    <button class="btn btn-secondary btn-sm" onclick="${editFunc}"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="${deleteFunc}"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        }
+    }).join('');
 }
 function filterDashTable(){ const q=document.getElementById('dashSearch').value.toLowerCase(); document.querySelectorAll('#dashTable tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none'); }
 
@@ -1796,22 +1885,45 @@ function filterJournalTable(){ const q=document.getElementById('journalSearch').
 /* ============================================================
    ANALYTICS
    ============================================================ */
+function switchAnalyticsMarket(el, market) {
+    document.querySelectorAll('#analyticsTabBar .tab-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    CURRENT_ANALYTICS_MARKET = market;
+    refreshAnalytics();
+}
+
 function refreshAnalytics(){
-    const trades=UD.trades.filter(t=>t.result!=='No Trading');
-    if(!trades.length){ document.getElementById('analyticsStats').innerHTML=''; return; }
+    const isForex = CURRENT_ANALYTICS_MARKET === 'forex';
+    const currencySym = isForex ? '$' : '₹';
+    const allTrades = isForex ? (UD && UD.forexTrades ? UD.forexTrades : []) : (UD && UD.trades ? UD.trades : []);
+    const trades = allTrades.filter(t=>t.result!=='No Trading');
+    
+    if(!trades.length){ 
+        document.getElementById('analyticsStats').innerHTML='<div class="empty-state" style="width:100%"><p>Add trades to see analytics</p></div>'; 
+        document.getElementById('setupPerfTable').innerHTML = '<tr><td colspan="7" style="text-align:center">No setups metrics</td></tr>';
+        document.getElementById('emotionPerfTable').innerHTML = '<tr><td colspan="6" style="text-align:center">No emotions metrics</td></tr>';
+        return; 
+    }
+    
     const wins=trades.filter(t=>t.result==='Win').length;
     const wr=(wins/trades.length*100).toFixed(1);
     const avgWin=trades.filter(t=>t.result==='Win').reduce((s,t)=>s+t.pl,0)/(wins||1);
     const losses=trades.filter(t=>t.result==='Loss');
     const avgLoss=Math.abs(losses.reduce((s,t)=>s+t.pl,0)/(losses.length||1));
     const expectancy=((wr/100)*avgWin)-((1-wr/100)*avgLoss);
-    const overtrade=UD.trades.filter(t=>t.mistake==='Overtrading').length;
-    const overPct=UD.trades.length?((overtrade/UD.trades.length)*100).toFixed(1):0;
+    
+    // Profit Factor
+    const profitsSum = trades.filter(t => t.pl > 0).reduce((s,t) => s + t.pl, 0);
+    const lossesSum = Math.abs(trades.filter(t => t.pl < 0).reduce((s,t) => s + t.pl, 0));
+    const profitFactor = lossesSum > 0 ? (profitsSum / lossesSum) : (profitsSum > 0 ? 9.99 : 0);
+
+    const overtrade=allTrades.filter(t=>t.mistake==='Overtrading').length;
+    const overPct=allTrades.length?((overtrade/allTrades.length)*100).toFixed(1):0;
 
     document.getElementById('analyticsStats').innerHTML=`
-        <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value">${wr}%</div></div>
-        <div class="stat-card"><div class="stat-label">Expectancy</div><div class="stat-value" style="color:${expectancy>=0?'var(--green)':'var(--red)'}">₹${expectancy.toFixed(0)}</div></div>
-        <div class="stat-card"><div class="stat-label">Discipline</div><div class="stat-value">${((UD.trades.reduce((s,t)=>s+Object.values(t.checklist||{}).filter(v=>v).length,0)/(UD.trades.length*4))*100).toFixed(1)}%</div></div>
+        <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:var(--green)">${wr}%</div></div>
+        <div class="stat-card"><div class="stat-label">Expectancy</div><div class="stat-value" style="color:${expectancy>=0?'var(--green)':'var(--red)'}">${currencySym}${expectancy.toFixed(0)}</div></div>
+        <div class="stat-card"><div class="stat-label">Profit Factor</div><div class="stat-value" style="color:${profitFactor>=1.5?'var(--green)':'var(--red)'}">${profitFactor.toFixed(2)}</div></div>
         <div class="stat-card"><div class="stat-label">Overtrading %</div><div class="stat-value" style="color:var(--red)">${overPct}%</div></div>
     `;
 
@@ -1820,7 +1932,7 @@ function refreshAnalytics(){
     trades.forEach(t=>{if(!sp[t.setup])sp[t.setup]={t:0,w:0,l:0,pl:0};sp[t.setup].t++;if(t.result==='Win')sp[t.setup].w++;if(t.result==='Loss')sp[t.setup].l++;sp[t.setup].pl+=t.pl});
     document.getElementById('setupPerfTable').innerHTML=Object.entries(sp).map(([s,d])=>`<tr>
         <td>${s}</td><td>${d.t}</td><td style="color:var(--green)">${d.w}</td><td style="color:var(--red)">${d.l}</td>
-        <td>${(d.w/d.t*100).toFixed(1)}%</td><td>₹${(d.pl/d.t).toFixed(0)}</td><td style="color:${d.pl>=0?'var(--green)':'var(--red)'}">₹${d.pl.toFixed(0)}</td>
+        <td>${(d.w/d.t*100).toFixed(1)}%</td><td>${currencySym}${(d.pl/d.t).toFixed(0)}</td><td style="color:${d.pl>=0?'var(--green)':'var(--red)'}">${currencySym}${d.pl.toFixed(0)}</td>
     </tr>`).join('');
 
     // Emotion Perf
@@ -1828,7 +1940,7 @@ function refreshAnalytics(){
     trades.forEach(t=>{if(!ep[t.emotion])ep[t.emotion]={t:0,w:0,l:0,pl:0};ep[t.emotion].t++;if(t.result==='Win')ep[t.emotion].w++;if(t.result==='Loss')ep[t.emotion].l++;ep[t.emotion].pl+=t.pl});
     document.getElementById('emotionPerfTable').innerHTML=Object.entries(ep).map(([e,d])=>`<tr>
         <td>${e}</td><td>${d.t}</td><td style="color:var(--green)">${d.w}</td><td style="color:var(--red)">${d.l}</td>
-        <td>${(d.w/d.t*100).toFixed(1)}%</td><td style="color:${d.pl>=0?'var(--green)':'var(--red)'}">₹${d.pl.toFixed(0)}</td>
+        <td>${(d.w/d.t*100).toFixed(1)}%</td><td style="color:${d.pl>=0?'var(--green)':'var(--red)'}">${currencySym}${d.pl.toFixed(0)}</td>
     </tr>`).join('');
 
     // Charts
@@ -1836,7 +1948,7 @@ function refreshAnalytics(){
     makeChart('cEmotionImpact','bar',{labels:eLabels,datasets:[{label:'P&L',data:eLabels.map(e=>ep[e].pl),backgroundColor:eLabels.map(e=>ep[e].pl>=0?'rgba(16,185,129,.7)':'rgba(239,68,68,.7)'),borderRadius:6}]},{legend:{display:false}});
 
     const mCount={};
-    UD.trades.filter(t=>t.mistake&&t.mistake!=='').forEach(t=>{mCount[t.mistake]=(mCount[t.mistake]||0)+1});
+    allTrades.filter(t=>t.mistake&&t.mistake!=='').forEach(t=>{mCount[t.mistake]=(mCount[t.mistake]||0)+1});
     if(Object.keys(mCount).length){
         makeChart('cMistake','doughnut',{labels:Object.keys(mCount),datasets:[{data:Object.values(mCount),backgroundColor:['#EF4444','#F59E0B','#8B5CF6','#3B82F6','#EC4899','#10B981']}]},{});
     }

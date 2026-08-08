@@ -1206,7 +1206,13 @@ window.fetch = function (url, options = {}) {
     const customUri = localStorage.getItem('t1p_custom_db_uri');
     if (customUri && customUri.trim().length > 0) {
         options.headers = options.headers || {};
-        options.headers['X-Database-URI'] = customUri;
+        if (typeof options.headers.set === 'function') {
+            options.headers.set('X-Database-URI', customUri);
+        } else if (Array.isArray(options.headers)) {
+            options.headers.push(['X-Database-URI', customUri]);
+        } else {
+            options.headers['X-Database-URI'] = customUri;
+        }
     }
     return originalFetch(url, options);
 };
@@ -1470,6 +1476,14 @@ function initApp(){
     if (dbBtn) {
         dbBtn.style.display = (CU && CU.role === 'admin') ? 'block' : 'none';
     }
+    
+    // Failsafe Database Check: Alert user if cloud connection failed under the hood!
+    setTimeout(() => {
+        const customUri = localStorage.getItem('t1p_custom_db_uri');
+        if (customUri && CURRENT_DB_MODE === 'json') {
+            alert('⚠️ CLOUD DATABASE CONNECTION ALERT:\n\nYour website could not connect to your custom database string inside the server. \n\nTo prevent any data loss, the system has automatically switched to OFFLINE LOCAL VAULT mode. Your data is currently being saved safely inside your browser localStorage.\n\nPlease open Settings -> Cloud Database and re-verify your connection string!');
+        }
+    }, 1500);
 }
 
 function updateSidebar(){

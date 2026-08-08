@@ -44,14 +44,16 @@ async function checkAndReconnectDb(req) {
         return;
     }
     
-    // Disconnect old connections if active
-    if (dbMode === 'postgres' && pgClient) {
+    // Disconnect old active PostgreSQL connections cleanly
+    if (pgClient) {
         try { await pgClient.end(); } catch(e) {}
         pgClient = null;
     }
-    if (dbMode === 'mongodb' && mongoose) {
-        try { await mongoose.disconnect(); } catch(e) {}
-        mongoose = null;
+    
+    // Disconnect old active Mongoose/MongoDB connections cleanly
+    const tempMongoose = require('mongoose');
+    if (tempMongoose.connection && tempMongoose.connection.readyState !== 0) {
+        try { await tempMongoose.disconnect(); } catch(e) {}
     }
 
     // Connect to new URI

@@ -481,10 +481,24 @@
         </form>
         
         <!-- Public Free Risk Planner Access -->
-        <div style="text-align: center; margin-top: 25px; border-top: 1px solid var(--border); padding-top: 20px">
+        <div style="text-align: center; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px">
             <p style="font-size: 11px; color: var(--text2); margin-bottom: 8px">Are you an Academy Student?</p>
             <button type="button" class="btn btn-secondary btn-full" onclick="openPublicRiskPlanner()"><i class="fas fa-calculator" style="margin-right:6px"></i> Open Free Smart Risk Planner</button>
+            
+            <p style="font-size: 11px; margin-top: 15px; color: var(--text2)">
+                New here? <a href="#" onclick="openRegisterHelpModal()" style="color: var(--gold); font-weight: 700; text-decoration: underline">How to register?</a>
+            </p>
         </div>
+        
+        <!-- Login Footer Credits -->
+        <footer style="margin-top: 25px; text-align: center; border-top: 1px solid var(--border); padding-top: 15px; font-size: 11px; color: var(--text2)">
+            <p style="font-weight: 700; margin-bottom: 8px; color: var(--text)">This platform belongs to <span style="color: var(--gold)">thekida_trader</span></p>
+            <div style="display: flex; justify-content: center; gap: 15px; font-size: 14px">
+                <a href="mailto:thekidatrader07@gmail.com" title="Email" style="color: var(--text2)"><i class="fas fa-envelope"></i></a>
+                <a href="https://www.instagram.com/thekida_trader?igsh=a2lrbGUweGpudGpx" target="_blank" title="Instagram" style="color: var(--text2)"><i class="fab fa-instagram"></i></a>
+                <a href="https://t.me/thekidatrader" target="_blank" title="Telegram" style="color: var(--text2)"><i class="fab fa-telegram"></i></a>
+            </div>
+        </footer>
     </div>
 </div>
 
@@ -501,6 +515,16 @@
     </div>
     <ul class="nav-menu" id="navMenu"></ul>
     <button class="btn btn-danger logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    
+    <!-- Sidebar Footer Credits -->
+    <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px; text-align: center; font-size: 11px; color: var(--text2)">
+        <p style="font-weight: 700; margin-bottom: 8px; color: var(--text)">This platform belongs to <span style="color: var(--gold)">thekida_trader</span></p>
+        <div style="display: flex; justify-content: center; gap: 12px; font-size: 13px">
+            <a href="mailto:thekidatrader07@gmail.com" title="Email" style="color: var(--text2)"><i class="fas fa-envelope"></i></a>
+            <a href="https://www.instagram.com/thekida_trader?igsh=a2lrbGUweGpudGpx" target="_blank" title="Instagram" style="color: var(--text2)"><i class="fab fa-instagram"></i></a>
+            <a href="https://t.me/thekidatrader" target="_blank" title="Telegram" style="color: var(--text2)"><i class="fab fa-telegram"></i></a>
+        </div>
+    </div>
 </aside>
 
 <!-- ========== MAIN ========== -->
@@ -4519,6 +4543,10 @@ function exitPublicRiskPlanner() {
     document.getElementById('page-risk_planner').classList.remove('active');
 }
 
+function openRegisterHelpModal() {
+    document.getElementById('registerHelpModal').classList.add('active');
+}
+
 /* ============================================================
    INIT
    ============================================================ */
@@ -4661,6 +4689,41 @@ document.addEventListener('DOMContentLoaded', async function(){
             </div>
         </div>
         <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('forexTradeModal')">Cancel</button><button class="btn btn-gold" onclick="saveForexTrade()">Save Trade</button></div>
+    </div>
+</div>
+
+<!-- Register Help Modal -->
+<div class="modal" id="registerHelpModal">
+    <div class="modal-box sm" style="max-width: 450px">
+        <div class="modal-header">
+            <div class="modal-title" style="color: var(--gold); font-weight: 900"><i class="fas fa-user-plus" style="margin-right: 8px"></i> How to Register</div>
+            <button class="close-btn" onclick="closeModal('registerHelpModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="text-align: center; padding: 20px">
+            <div style="background: var(--ggold); color: var(--bg); font-size: 32px; width: 64px; height: 64px; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; border-radius: 50%">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <h3 style="font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 10px">Join the thekida_trader Academy!</h3>
+            <p style="font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 20px">
+                To request your personalized trading journal account and gain access to our premium compounding engines, live charts, and risk planners, please send an email to our admissions team.
+            </p>
+            
+            <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 15px; text-align: left; margin-bottom: 20px">
+                <p style="font-size: 12px; color: var(--gold); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px">📧 Send Email To:</p>
+                <p style="font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 15px">
+                    <a href="mailto:thekidatrader07@gmail.com" style="color: var(--gold); text-decoration: underline">thekidatrader07@gmail.com</a>
+                </p>
+                
+                <p style="font-size: 12px; color: var(--gold); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px">📝 Include Following Details:</p>
+                <ul style="list-style: none; padding-left: 0; margin-bottom: 0; font-size: 13px; color: var(--text2); display: flex; flex-direction: column; gap: 6px">
+                    <li><i class="fas fa-check-circle" style="color: var(--green); margin-right: 6px"></i> <strong>Full Name</strong></li>
+                    <li><i class="fas fa-check-circle" style="color: var(--green); margin-right: 6px"></i> <strong>Mobile Number</strong></li>
+                    <li><i class="fas fa-check-circle" style="color: var(--green); margin-right: 6px"></i> <strong>Email ID</strong></li>
+                </ul>
+            </div>
+            
+            <button class="btn btn-gold btn-full" onclick="closeModal('registerHelpModal')">Got It, Thanks!</button>
+        </div>
     </div>
 </div>
 
